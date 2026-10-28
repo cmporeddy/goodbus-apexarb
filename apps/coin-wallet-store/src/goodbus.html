@@ -928,8 +928,8 @@
         btn.disabled = false;
         btn.innerHTML = oldHtml;
 
-        // Use same-origin checkout URL on port 5000 to eliminate any cross-origin framing issues
-        const checkoutUrl = `${window.location.origin}/checkout/${data.paymentId}`;
+        // Use same-origin checkout URL on port 5000 with passenger params to auto-bypass OTP verification
+        const checkoutUrl = `${window.location.origin}/checkout/${data.paymentId}?customerPhone=${encodeURIComponent(phone)}&customerName=${encodeURIComponent(name)}&customerEmail=${encodeURIComponent(phone + '@goodbus.local')}`;
 
         window.Youpi.pay({
           checkoutUrl: checkoutUrl,
@@ -939,6 +939,11 @@
           currency: 'INR',
           name: 'GoodBus',
           description: `${fromCity} to ${toCity} (${currentBusType})`,
+          customer: {
+            name: name,
+            phone: phone,
+            email: `${phone}@goodbus.local`
+          },
           handler: function(response) {
             console.log('Payment Successful:', response);
             renderGeneratedTicket({
