@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GoodBus · Fast Bus Ticket Booking & Instant Ticket Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Official YouPI PG Universal Integration Script -->
+  <script src="/youpi.js" data-youpi-key="00000000-0000-0000-0000-000000000001" data-currency="INR"></script>
+
+  <style>
+    :root {
+      --primary: #e11d48;
+      --primary-hover: #be123c;
+      --primary-glow: rgba(225, 29, 72, 0.25);
+      --bg: #090d16;
+      --surface: #111827;
+      --surface-elevated: #1f2937;
+      --border: #374151;
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --accent-green: #10b981;
+      --accent-gold: #f59e0b;
+      --radius: 16px;
+      --font-display: 'Outfit', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(225, 29, 72, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.08) 0%, transparent 40%);
+    }
+
+    /* Top Banner */
+    .top-badge-bar {
+      background: linear-gradient(90deg, #1e1b4b, #831843);
+      padding: 8px 16px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+    .top-badge-bar span.pill {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+    }
+
+    /* Header */
+    header {
+      border-bottom: 1px solid var(--border);
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+    .header-content {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #fff;
+    }
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--primary), #fb7185);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+    .brand-text h1 {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .brand-text p {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .merchant-gpay-chip {
+      background: rgba(31, 41, 55, 0.8);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .gpay-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--accent-green);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--accent-green);
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px 20px;
+      width: 100%;
+    }
+
+    /* Grid Layout */
+    .booking-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 0.85fr;
+      gap: 28px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .booking-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-title .step-number {
+      width: 28px;
+      height: 28px;
+      background: var(--primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    /* Form Controls */
+    .form-group {
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    select, input {
+      width: 100%;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    select:focus, input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    /* Bus Route Options */
+    .bus-options {
+      display: grid;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .bus-card {
+      background: var(--surface-elevated);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .bus-card:hover {
+      border-color: rgba(225, 29, 72, 0.5);
+      transform: translateY(-2px);
+    }
+    .bus-card.active {
+      border-color: var(--primary);
+      background: rgba(225, 29, 72, 0.08);
+    }
+    .bus-name {
+      font-weight: 700;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .bus-badge {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .bus-time {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .bus-price {
+      text-align: right;
+    }
+    .bus-price .amt {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .bus-price .per-seat {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Seat Selector */
+    .seats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin: 14px 0;
+    }
+    .seat-btn {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      color: #fff;
+      border-radius: 8px;
+      padding: 10px 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .seat-btn.selected {
+      background: var(--primary);
+      border-color: #fb7185;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+    .seat-btn.booked {
+      opacity: 0.35;
+      cursor: not-allowed;
+      border-style: dashed;
+    }
+
+    /* Summary Card */
+    .summary-card {
+      position: sticky;
+      top: 96px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .summary-row.total {
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      margin-top: 14px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .summary-row.total .price-val {
+      font-family: var(--font-display);
+      font-size: 26px;
+      color: #fb7185;
+    }
+
+    .gpay-notice {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      margin-bottom: 18px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .gpay-notice svg {
+      flex-shrink: 0;
+    }
+
+    .btn-pay {
+      width: 100%;
+      background: linear-gradient(135deg, var(--primary), #be123c);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 17px;
+      font-weight: 700;
+      font-family: var(--font-display);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 6px 20px var(--primary-glow);
+      transition: all 0.2s ease;
+    }
+    .btn-pay:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(225, 29, 72, 0.4);
+    }
+    .btn-pay:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .dev-simulate-box {
+      margin-top: 16px;
+      padding: 12px;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px dashed rgba(245, 158, 11, 0.4);
+      border-radius: 10px;
+      font-size: 12px;
+      text-align: center;
+    }
+    .btn-simulator {
+      background: #f59e0b;
+      color: #000;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
+    /* TICKET SUCCESS VIEW */
+    #ticketContainer {
+      display: none;
+      max-width: 780px;
+      margin: 0 auto;
+      animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .ticket-card {
+      background: #fff;
+      color: #111827;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+    .ticket-header {
+      background: linear-gradient(135deg, #e11d48, #9f1239);
+      color: #fff;
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .ticket-status-pill {
+      background: #10b981;
+      color: #fff;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .ticket-body {
+      padding: 28px;
+    }
+    .ticket-pnr-box {
+      background: #f3f4f6;
+      border: 1px dashed #d1d5db;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .pnr-val {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 800;
+      color: #e11d48;
+      letter-spacing: 1px;
+    }
+    .route-visual {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .station-node h3 {
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .station-node p {
+      font-size: 13px;
+      color: #6b7280;
+    }
+    .route-line {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      margin: 0 20px;
+    }
+    .route-line::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #e5e7eb;
+      z-index: 1;
+    }
+    .route-line span {
+      background: #fff;
+      position: relative;
+      z-index: 2;
+      padding: 0 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #9ca3af;
+    }
+
+    .ticket-details-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .detail-item p.label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #6b7280;
+      font-weight: 600;
+    }
+    .detail-item p.val {
+      font-size: 15px;
+      font-weight: 700;
+      color: #111827;
+      margin-top: 3px;
+    }
+
+    .ticket-footer-actions {
+      display: flex;
+      gap: 14px;
+      margin-top: 24px;
+    }
+    .btn-action {
+      flex: 1;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      border: none;
+    }
+    .btn-print {
+      background: #111827;
+      color: #fff;
+    }
+    .btn-new {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #ticketContainer, #ticketContainer * {
+        visibility: visible;
+      }
+      #ticketContainer {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        display: block !important;
+      }
+      .ticket-footer-actions {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Announcement -->
+  <div class="top-badge-bar">
+    <span>🚌 <strong>GoodBus Booking Engine</strong></span>
+    <span>•</span>
+    <span>Direct P2P UPI Payment to GPay: <strong>8861163436</strong></span>
+    <span class="pill">0% Gateway Fees</span>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="header-content">
+      <a href="/goodbus" class="brand-logo">
+        <div class="brand-icon">🚌</div>
+        <div class="brand-text">
+          <h1>GoodBus</h1>
+          <p>godbus.epicsevelabs.com · Instant E-Ticket</p>
+        </div>
+      </a>
+      <div class="merchant-gpay-chip">
+        <div class="gpay-dot"></div>
+        <span>Receiving GPay: <strong>8861163436</strong></span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- BOOKING SCREEN -->
+    <div id="bookingSection" class="booking-grid">
+      <!-- Left Column: Bus & Passenger Selection -->
+      <div class="card">
+        <div class="card-title">
+          <div class="step-number">1</div>
+          <span>Select Your Route & Dynamic Bus Type</span>
+        </div>
+
+        <div class="form-group">
+          <label>Select Journey Route</label>
+          <select id="routeSelect" onchange="updateFareCalculation()">
+            <option value="BLR-HYD" data-from="Bengaluru" data-to="Hyderabad" data-dep="21:30" data-arr="06:30">Bengaluru ➔ Hyderabad (Overnight Express)</option>
+            <option value="MAA-BLR" data-from="Chennai" data-to="Bengaluru" data-dep="22:00" data-arr="05:30">Chennai ➔ Bengaluru (Intercity Highway)</option>
+            <option value="BOM-GOA" data-from="Mumbai" data-to="Goa" data-dep="20:00" data-arr="08:00">Mumbai ➔ Goa (Coastal Sleeper)</option>
+            <option value="DEL-MNL" data-from="Delhi" data-to="Manali" data-dep="19:00" data-arr="09:00">Delhi ➔ Manali (Himalayan Cruiser)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Choose Bus Category (Dynamic Pricing)</label>
+          <div class="bus-options">
+            <div class="bus-card active" data-type="Sleeper AC Lower" data-price="850" onclick="selectBusType(this)">
+              <div>
+                <div class="bus-name">
+                  <span>Sleeper AC (Lower Berth)</span>
+                  <span class="bus-badge">POPULAR</span>
+                </div>
+                <div class="bus-time">Spacious 2x1 AC Berth with charging & reading light</div>
+              </div>
+              <div class="bus-price">
+                <div class="amt">₹850</div>
+                <div class="per-seat">per seat</div>
+              </div>
+            </div>
+
+            <div class="bus-card" data-type="Sleeper AC Upper" data-price="650" onclick="selectBusType(this)">
+              <div>
+                <div class="bus-name">
+                  <span>Sleeper AC (Upper Berth)</span>
+                  <span class="bus-badge">SAVER</span>
+                </div>
+                <div class="bus-time">Cozy Single Upper Berth with privacy curtain</div>
+              </div>
+              <div class="bus-price">
+                <div class="amt">₹650</div>
+                <div class="per-seat">per seat</div>
+              </div>
+            </div>
+
+            <div class="bus-card" data-type="Multi-Axle Scania Club" data-price="1250" onclick="selectBusType(this)">
+              <div>
+                <div class="bus-name">
+                  <span>Scania Multi-Axle Premium</span>
+                  <span class="bus-badge" style="background:rgba(245,158,11,0.2);color:#fbbf24;">VIP</span>
+                </div>
+                <div class="bus-time">Ultra-smooth air suspension + reclining luxury lounge</div>
+              </div>
+              <div class="bus-price">
+                <div class="amt">₹1,250</div>
+                <div class="per-seat">per seat</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-title" style="margin-top:28px;">
+          <div class="step-number">2</div>
+          <span>Select Seat(s) & Passenger Info</span>
+        </div>
+
+        <div class="form-group">
+          <label>Click to Choose Seat</label>
+          <div class="seats-grid">
+            <button type="button" class="seat-btn selected" onclick="toggleSeat(this, 'L-12')">
+              <span>L-12</span><small>Lower</small>
+            </button>
+            <button type="button" class="seat-btn" onclick="toggleSeat(this, 'L-14')">
+              <span>L-14</span><small>Lower</small>
+            </button>
+            <button type="button" class="seat-btn booked" disabled>
+              <span>L-15</span><small>Booked</small>
+            </button>
+            <button type="button" class="seat-btn" onclick="toggleSeat(this, 'U-08')">
+              <span>U-08</span><small>Upper</small>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Passenger Name</label>
+          <input type="text" id="passengerName" value="Reddy" placeholder="e.g. Mohit Reddy" />
+        </div>
+
+        <div class="form-group">
+          <label>Passenger Mobile (Receives E-Ticket via WhatsApp/SMS)</label>
+          <input type="tel" id="passengerMobile" value="8861163436" placeholder="10-digit mobile number" />
+        </div>
+      </div>
+
+      <!-- Right Column: Live Fare Summary & Payment Action -->
+      <div class="card summary-card">
+        <div class="card-title">
+          <div class="step-number">3</div>
+          <span>Dynamic Fare & Payment</span>
+        </div>
+
+        <div class="summary-row">
+          <span>Route</span>
+          <strong id="summaryRoute">BLR ➔ HYD</strong>
+        </div>
+        <div class="summary-row">
+          <span>Bus Category</span>
+          <strong id="summaryBusType">Sleeper AC Lower</strong>
+        </div>
+        <div class="summary-row">
+          <span>Selected Seat(s)</span>
+          <strong id="summarySeats">L-12</strong>
+        </div>
+        <div class="summary-row">
+          <span>Seat Fare</span>
+          <span id="summaryBasePrice">₹850.00</span>
+        </div>
+        <div class="summary-row">
+          <span>Taxes & GST (5%)</span>
+          <span id="summaryTax">₹42.50</span>
+        </div>
+
+        <div class="summary-row total">
+          <span>Total To Pay</span>
+          <span class="price-val" id="summaryTotalAmount">₹892.50</span>
+        </div>
+
+        <div class="gpay-notice">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#10b981"/></svg>
+          <div>
+            Payment directly credits to GPay: <strong>8861163436</strong>. Instant ticket generation upon payment.
+          </div>
+        </div>
+
+        <button type="button" id="payButton" class="btn-pay" onclick="handleBusPayment()">
+          <span>Pay &amp; Generate Ticket</span>
+          <span id="btnPayAmount">₹892.50</span>
+          <span>&rsaquo;</span>
+        </button>
+
+        <div class="dev-simulate-box">
+          <p>🧪 <strong>Developer Testing Mode Active</strong></p>
+          <p>Want to test ticket generation without sending real money?</p>
+          <button type="button" class="btn-simulator" onclick="handleSimulatedTestTicket()">
+            ⚡ Instant Test Ticket (Simulate Success)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TICKET GENERATION RESULT SCREEN -->
+    <div id="ticketContainer">
+      <div class="ticket-card">
+        <div class="ticket-header">
+          <div>
+            <h2 style="font-size:22px;font-weight:800;">GoodBus Boarding Pass</h2>
+            <p style="font-size:13px;opacity:0.9;">godbus.epicsevelabs.com · Verified E-Ticket</p>
+          </div>
+          <div class="ticket-status-pill">✓ CONFIRMED (PAID)</div>
+        </div>
+
+        <div class="ticket-body">
+          <div class="ticket-pnr-box">
+            <div>
+              <p style="font-size:12px;color:#6b7280;text-transform:uppercase;font-weight:700;">PNR NUMBER</p>
+              <div class="pnr-val" id="tktPnr">GB-2026-8861</div>
+            </div>
+            <div style="text-align:right;">
+              <p style="font-size:12px;color:#6b7280;text-transform:uppercase;font-weight:700;">TRANSACTION UTR / REF</p>
+              <div style="font-family:monospace;font-size:14px;font-weight:700;color:#111827;" id="tktUtr">UTR-8861-PAYMENT-OK</div>
+            </div>
+          </div>
+
+          <div class="route-visual">
+            <div class="station-node">
+              <h3 id="tktFrom">Bengaluru</h3>
+              <p id="tktDepTime">21:30 (Today)</p>
+            </div>
+            <div class="route-line">
+              <span id="tktDuration">Overnight · 9h</span>
+            </div>
+            <div class="station-node" style="text-align:right;">
+              <h3 id="tktTo">Hyderabad</h3>
+              <p id="tktArrTime">06:30 (Tomorrow)</p>
+            </div>
+          </div>
+
+          <div class="ticket-details-grid">
+            <div class="detail-item">
+              <p class="label">PASSENGER NAME</p>
+              <p class="val" id="tktPassenger">Reddy</p>
+            </div>
+            <div class="detail-item">
+              <p class="label">CONTACT MOBILE</p>
+              <p class="val" id="tktMobile">8861163436</p>
+            </div>
+            <div class="detail-item">
+              <p class="label">SEAT NUMBER(S)</p>
+              <p class="val" id="tktSeats" style="color:#e11d48;font-size:18px;">L-12</p>
+            </div>
+            <div class="detail-item">
+              <p class="label">BUS SERVICE</p>
+              <p class="val" id="tktBusService">Sleeper AC Lower</p>
+            </div>
+            <div class="detail-item">
+              <p class="label">TOTAL FARE PAID</p>
+              <p class="val" id="tktFarePaid" style="color:#10b981;font-size:18px;">₹892.50</p>
+            </div>
+            <div class="detail-item">
+              <p class="label">PAYMENT DESTINATION</p>
+              <p class="val" style="color:#4b5563;">GPay (8861163436)</p>
+            </div>
+          </div>
+
+          <div style="background:#f9fafb;border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:space-between;border:1px solid #e5e7eb;">
+            <div>
+              <p style="font-weight:700;font-size:14px;color:#111827;">Conductor Verification Code</p>
+              <p style="font-size:12px;color:#6b7280;">Present this barcode or QR code while boarding the bus</p>
+            </div>
+            <!-- Mock barcode -->
+            <div style="font-family:monospace;letter-spacing:4px;font-weight:800;font-size:18px;background:#e5e7eb;padding:6px 14px;border-radius:6px;" id="tktBarcode">
+              ||| | |||| | || |
+            </div>
+          </div>
+
+          <div class="ticket-footer-actions">
+            <button class="btn-action btn-print" onclick="window.print()">🖨️ Print / Save Ticket (PDF)</button>
+            <button class="btn-action btn-new" onclick="resetToNewBooking()">🔄 Book Another Seat</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let currentBasePrice = 850;
+    let currentBusType = 'Sleeper AC Lower';
+    let selectedSeats = ['L-12'];
+
+    function selectBusType(element) {
+      document.querySelectorAll('.bus-card').forEach(c => c.classList.remove('active'));
+      element.classList.add('active');
+      currentBasePrice = Number(element.getAttribute('data-price'));
+      currentBusType = element.getAttribute('data-type');
+      updateFareCalculation();
+    }
+
+    function toggleSeat(btn, seatNumber) {
+      if (btn.classList.contains('selected')) {
+        if (selectedSeats.length === 1) {
+          alert('You must select at least one seat.');
+          return;
+        }
+        btn.classList.remove('selected');
+        selectedSeats = selectedSeats.filter(s => s !== seatNumber);
+      } else {
+        btn.classList.add('selected');
+        selectedSeats.push(seatNumber);
+      }
+      updateFareCalculation();
+    }
+
+    function updateFareCalculation() {
+      const seatCount = Math.max(1, selectedSeats.length);
+      const subtotal = currentBasePrice * seatCount;
+      const gst = subtotal * 0.05;
+      const total = subtotal + gst;
+
+      const routeSelect = document.getElementById('routeSelect');
+      const opt = routeSelect.options[routeSelect.selectedIndex];
+
+      document.getElementById('summaryRoute').textContent = `${opt.getAttribute('data-from')} ➔ ${opt.getAttribute('data-to')}`;
+      document.getElementById('summaryBusType').textContent = currentBusType;
+      document.getElementById('summarySeats').textContent = selectedSeats.join(', ');
+      document.getElementById('summaryBasePrice').textContent = `₹${subtotal.toFixed(2)}`;
+      document.getElementById('summaryTax').textContent = `₹${gst.toFixed(2)}`;
+      
+      const formattedTotal = `₹${total.toFixed(2)}`;
+      document.getElementById('summaryTotalAmount').textContent = formattedTotal;
+      document.getElementById('btnPayAmount').textContent = formattedTotal;
+    }
+
+    // Main Payment Handler using YouPI Universal Integration
+    async function handleBusPayment() {
+      const name = document.getElementById('passengerName').value.trim() || 'Valued Passenger';
+      const phone = document.getElementById('passengerMobile').value.trim() || '8861163436';
+      const totalStr = document.getElementById('summaryTotalAmount').textContent.replace('₹', '').trim();
+      const totalNum = parseFloat(totalStr);
+
+      const routeSelect = document.getElementById('routeSelect');
+      const opt = routeSelect.options[routeSelect.selectedIndex];
+      const fromCity = opt.getAttribute('data-from');
+      const toCity = opt.getAttribute('data-to');
+
+      const orderId = `GOODBUS-${Date.now().toString().slice(-6)}`;
+
+      // Launch YouPI Modal
+      if (window.Youpi && typeof window.Youpi.pay === 'function') {
+        window.Youpi.pay({
+          order_id: orderId,
+          amount: totalNum,
+          currency: 'INR',
+          customer: {
+            name: name,
+            phone: phone,
+            email: `${phone}@goodbus.local`
+          },
+          metadata: {
+            service: 'GoodBus (godbus.epicsevelabs.com)',
+            route: `${fromCity} ➔ ${toCity}`,
+            seats: selectedSeats.join(','),
+            busType: currentBusType,
+            gpayAccount: '8861163436'
+          },
+          handler: function(response) {
+            console.log('Payment Successful:', response);
+            renderGeneratedTicket({
+              pnr: `GB-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+              utr: response.utr || `UTR-${Date.now().toString().slice(-8)}`,
+              passenger: name,
+              phone: phone,
+              from: fromCity,
+              to: toCity,
+              depTime: opt.getAttribute('data-dep') + ' (Today)',
+              arrTime: opt.getAttribute('data-arr') + ' (Tomorrow)',
+              seats: selectedSeats.join(', '),
+              busType: currentBusType,
+              fare: `₹${totalNum.toFixed(2)}`
+            });
+          },
+          onClose: function() {
+            console.log('Payment modal dismissed by passenger');
+          }
+        });
+      } else {
+        alert('YouPI PG script loading. Please refresh the page and try again.');
+      }
+    }
+
+    // Fast Developer Testing Simulator (Generates verified ticket immediately)
+    function handleSimulatedTestTicket() {
+      const name = document.getElementById('passengerName').value.trim() || 'Reddy';
+      const phone = document.getElementById('passengerMobile').value.trim() || '8861163436';
+      const totalStr = document.getElementById('summaryTotalAmount').textContent.replace('₹', '').trim();
+      const routeSelect = document.getElementById('routeSelect');
+      const opt = routeSelect.options[routeSelect.selectedIndex];
+
+      renderGeneratedTicket({
+        pnr: `GB-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        utr: `GPAY-8861-${Date.now().toString().slice(-6)}`,
+        passenger: name,
+        phone: phone,
+        from: opt.getAttribute('data-from'),
+        to: opt.getAttribute('data-to'),
+        depTime: opt.getAttribute('data-dep') + ' (Today)',
+        arrTime: opt.getAttribute('data-arr') + ' (Tomorrow)',
+        seats: selectedSeats.join(', '),
+        busType: currentBusType,
+        fare: `₹${totalStr}`
+      });
+    }
+
+    // Render the Generated E-Ticket Screen
+    function renderGeneratedTicket(data) {
+      document.getElementById('bookingSection').style.display = 'none';
+      const ticketEl = document.getElementById('ticketContainer');
+      ticketEl.style.display = 'block';
+
+      document.getElementById('tktPnr').textContent = data.pnr;
+      document.getElementById('tktUtr').textContent = data.utr;
+      document.getElementById('tktPassenger').textContent = data.passenger;
+      document.getElementById('tktMobile').textContent = data.phone;
+      document.getElementById('tktFrom').textContent = data.from;
+      document.getElementById('tktTo').textContent = data.to;
+      document.getElementById('tktDepTime').textContent = data.depTime;
+      document.getElementById('tktArrTime').textContent = data.arrTime;
+      document.getElementById('tktSeats').textContent = data.seats;
+      document.getElementById('tktBusService').textContent = data.busType;
+      document.getElementById('tktFarePaid').textContent = data.fare;
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetToNewBooking() {
+      document.getElementById('ticketContainer').style.display = 'none';
+      document.getElementById('bookingSection').style.display = 'grid';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Listen to window YouPI CustomEvents
+    window.addEventListener('youpi:payment:success', function(e) {
+      console.log('Received youpi:payment:success event:', e.detail);
+      const opt = document.getElementById('routeSelect').selectedOptions[0];
+      renderGeneratedTicket({
+        pnr: `GB-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+        utr: e.detail?.utr || 'UTR-BANK-VERIFIED',
+        passenger: document.getElementById('passengerName').value || 'Reddy',
+        phone: document.getElementById('passengerMobile').value || '8861163436',
+        from: opt.getAttribute('data-from'),
+        to: opt.getAttribute('data-to'),
+        depTime: opt.getAttribute('data-dep') + ' (Today)',
+        arrTime: opt.getAttribute('data-arr') + ' (Tomorrow)',
+        seats: selectedSeats.join(', '),
+        busType: currentBusType,
+        fare: `₹${(e.detail?.amount_received || 892.50).toFixed(2)}`
+      });
+    });
+
+    // Initialize initial calculations on load
+    updateFareCalculation();
+  </script>
+</body>
+</html>

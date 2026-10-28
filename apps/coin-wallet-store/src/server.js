@@ -386,6 +386,21 @@ export class CoinWalletStoreServer {
         }
       }
 
+      // GET /goodbus or /bus-tickets
+      if ((pathname === '/goodbus' || pathname === '/bus-tickets') && (method === 'GET' || method === 'HEAD')) {
+        try { this.goodbusHtml = fs.readFileSync(path.join(__dirname, 'goodbus.html'), 'utf8'); } catch {}
+        res.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          ...BASE_SECURITY_HEADERS
+        });
+        if (method === 'HEAD') { res.end(); return; }
+        res.end(this.goodbusHtml || 'GoodBus page not found');
+        return;
+      }
+
       // GET / or /store
       if ((pathname === '/' || pathname === '/store') && (method === 'GET' || method === 'HEAD')) {
         try { this.storeHtml = fs.readFileSync(path.join(__dirname, 'store.html'), 'utf8'); } catch {}
