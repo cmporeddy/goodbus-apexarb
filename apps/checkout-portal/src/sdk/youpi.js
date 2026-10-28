@@ -446,9 +446,25 @@
           ? 'youpi:payment:success'
           : (status === 'MANUAL_REVIEW' ? 'youpi:payment:suspicious' : 'youpi:payment:observed');
         YoupiCheckout._emitEvent(domEvent, result);
+        if (status === 'OBSERVED_SUCCESS' || status === 'RECONCILED') {
+          YoupiCheckout._emitEvent('youpi:payment:success', result);
+        }
         YoupiCheckout._emitEvent('youpi:payment:result', result);
         if (typeof this.options.handler === 'function') this.options.handler(result);
-        if (status === 'RECONCILED' && typeof this.options.onSuccess === 'function') this.options.onSuccess(result);
+        if ((status === 'RECONCILED' || status === 'OBSERVED_SUCCESS') && typeof this.options.onSuccess === 'function') {
+          this.options.onSuccess(result);
+        }
+
+        if (status === 'OBSERVED_SUCCESS' || status === 'RECONCILED') {
+          setTimeout(() => {
+            this.close(() => {
+              if (this.options.successUrl) {
+                const delim = this.options.successUrl.includes('?') ? '&' : '?';
+                window.location.href = `${this.options.successUrl}${delim}order_id=${encodeURIComponent(result.order_id)}&amount=${encodeURIComponent(result.amount_received)}&utr=${encodeURIComponent(result.utr)}`;
+              }
+            });
+          }, 1500);
+        }
       } else if (event === 'youpi.payment_failed') {
         const payload = e.data.data || e.data || {};
         const result = {

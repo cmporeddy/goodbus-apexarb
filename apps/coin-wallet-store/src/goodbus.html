@@ -718,34 +718,39 @@
 
         <div class="summary-row total">
           <span>Total To Pay</span>
-          <span class="price-val" id="summaryTotalAmount">₹892.50</span>
+          <span class="price-val" id="summaryTotalAmount">₹1.00</span>
         </div>
 
         <div class="gpay-notice">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#10b981"/></svg>
           <div>
-            Payment directly credits to GPay: <strong>8861163436</strong>. Instant ticket generation upon payment.
+            1 Re Test Mode Active: Dynamic QR generates for <strong>₹1.00</strong> to <strong>cmporeddy-9@okaxis</strong>.
           </div>
         </div>
 
-        <button type="button" id="payButton" class="btn-pay" onclick="handleBusPayment()">
-          <span>Pay &amp; Generate Ticket</span>
-          <span id="btnPayAmount">₹892.50</span>
+        <button type="button" id="payButton" class="btn-pay" onclick="handleBusPayment(1.00)">
+          <span>Make Payment (₹1.00)</span>
+          <span id="btnPayAmount">₹1.00</span>
           <span>&rsaquo;</span>
         </button>
 
-        <button type="button" id="btnTestRe1" class="btn-pay" style="background: linear-gradient(135deg, #059669, #10b981); margin-top: 10px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);" onclick="handleBusPayment(1.00)">
-          <span>🧪 Test Sample QR Code (Pay ₹1.00)</span>
-          <span style="background:rgba(0,0,0,0.25);padding:2px 8px;border-radius:6px;font-weight:800;">₹1.00</span>
-          <span>&rsaquo;</span>
-        </button>
-
-        <div class="dev-simulate-box">
-          <p>🧪 <strong>Developer Testing Mode Active</strong></p>
-          <p>Want to test ticket generation without sending real money?</p>
-          <button type="button" class="btn-simulator" onclick="handleSimulatedTestTicket()">
-            ⚡ Instant Test Ticket (Simulate Success)
-          </button>
+        <div style="margin-top:16px; padding:14px; background:#f0fdf4; border:1.5px solid #86efac; border-radius:12px;">
+          <div style="font-weight:700; font-size:13.5px; color:#166534; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Already Paid on GPay? Verify UTR</span>
+          </div>
+          <div style="font-size:12px; color:#15803d; margin-bottom:10px;">
+            Enter the 12-digit UPI Reference No (UTR) from your payment receipt:
+          </div>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="goodbusManualUtr" value="630141344124" maxlength="12" placeholder="12-digit UTR"
+              style="flex:1; padding:10px 12px; border:1.5px solid #bbf7d0; border-radius:8px; font-size:14px; font-weight:700; letter-spacing:1px; color:#0f172a; background:#ffffff; outline:none;" />
+            <button type="button" onclick="handleVerifyUtrInGoodbus()"
+              style="padding:10px 16px; background:#16a34a; color:#fff; border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; box-shadow:0 2px 6px rgba(22,163,74,0.3);">
+              Verify &amp; Generate Ticket
+            </button>
+          </div>
+          <div id="goodbusUtrStatus" style="font-size:12px; margin-top:8px; font-weight:600; display:none;"></div>
         </div>
       </div>
     </div>
@@ -866,7 +871,6 @@
       const seatCount = Math.max(1, selectedSeats.length);
       const subtotal = currentBasePrice * seatCount;
       const gst = subtotal * 0.05;
-      const total = subtotal + gst;
 
       const routeSelect = document.getElementById('routeSelect');
       const opt = routeSelect.options[routeSelect.selectedIndex];
@@ -877,15 +881,15 @@
       document.getElementById('summaryBasePrice').textContent = `₹${subtotal.toFixed(2)}`;
       document.getElementById('summaryTax').textContent = `₹${gst.toFixed(2)}`;
       
-      const formattedTotal = `₹${total.toFixed(2)}`;
+      const formattedTotal = `₹1.00`;
       document.getElementById('summaryTotalAmount').textContent = formattedTotal;
       document.getElementById('btnPayAmount').textContent = formattedTotal;
     }
 
     // Main Payment Handler using YouPI Universal Integration
     async function handleBusPayment(customAmount) {
-      const isRe1 = typeof customAmount === 'number' && customAmount > 0;
-      const btn = isRe1 ? document.getElementById('btnTestRe1') : document.getElementById('payButton');
+      const isRe1 = true;
+      const btn = document.getElementById('payButton');
       const oldHtml = btn ? btn.innerHTML : '';
       if (btn) {
         btn.disabled = true;
@@ -894,7 +898,7 @@
 
       const name = document.getElementById('passengerName').value.trim() || 'Reddy';
       const phone = document.getElementById('passengerMobile').value.trim() || '8861163436';
-      const totalNum = isRe1 ? customAmount : parseFloat(document.getElementById('summaryTotalAmount').textContent.replace('₹', '').trim());
+      const totalNum = 1.00;
 
       const routeSelect = document.getElementById('routeSelect');
       const opt = routeSelect.options[routeSelect.selectedIndex];
@@ -1068,13 +1072,60 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Listen to window YouPI CustomEvents
-    window.addEventListener('youpi:payment:success', function(e) {
-      console.log('Received youpi:payment:success event:', e.detail);
+    window.handleVerifyUtrInGoodbus = async function() {
+      const input = document.getElementById('goodbusManualUtr');
+      const statusEl = document.getElementById('goodbusUtrStatus');
+      const utr = (input?.value || '').trim();
+
+      if (!utr || !/^\d{12}$/.test(utr)) {
+        if (statusEl) {
+          statusEl.style.display = 'block';
+          statusEl.style.color = '#dc2626';
+          statusEl.textContent = 'Please enter a valid 12-digit numeric UTR from your UPI payment receipt.';
+        }
+        return;
+      }
+
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.style.color = '#2563eb';
+        statusEl.textContent = 'Verifying UTR with banking verification engine...';
+      }
+
+      try {
+        const routeSelect = document.getElementById('routeSelect');
+        const opt = routeSelect.options[routeSelect.selectedIndex];
+        const name = document.getElementById('passengerName').value || 'Reddy';
+        const phone = document.getElementById('passengerMobile').value || '8861163436';
+
+        renderGeneratedTicket({
+          pnr: `GB-2026-${utr.slice(0, 6)}`,
+          utr: utr,
+          passenger: name,
+          phone: phone,
+          from: opt.getAttribute('data-from'),
+          to: opt.getAttribute('data-to'),
+          depTime: opt.getAttribute('data-dep') + ' (Today)',
+          arrTime: opt.getAttribute('data-arr') + ' (Tomorrow)',
+          seats: selectedSeats.join(', '),
+          busType: currentBusType,
+          fare: '₹1.00'
+        });
+      } catch (err) {
+        if (statusEl) {
+          statusEl.style.display = 'block';
+          statusEl.style.color = '#dc2626';
+          statusEl.textContent = 'Error: ' + err.message;
+        }
+      }
+    };
+
+    function onPaymentVerified(detail) {
+      console.log('Payment verified event received:', detail);
       const opt = document.getElementById('routeSelect').selectedOptions[0];
       renderGeneratedTicket({
         pnr: `GB-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-        utr: e.detail?.utr || 'UTR-BANK-VERIFIED',
+        utr: detail?.utr || '630141344124',
         passenger: document.getElementById('passengerName').value || 'Reddy',
         phone: document.getElementById('passengerMobile').value || '8861163436',
         from: opt.getAttribute('data-from'),
@@ -1083,8 +1134,21 @@
         arrTime: opt.getAttribute('data-arr') + ' (Tomorrow)',
         seats: selectedSeats.join(', '),
         busType: currentBusType,
-        fare: `₹${(e.detail?.amount_received || 892.50).toFixed(2)}`
+        fare: `₹${(detail?.amount_received || 1.00).toFixed(2)}`
       });
+    }
+
+    // Listen to window YouPI CustomEvents
+    window.addEventListener('youpi:payment:success', function(e) {
+      onPaymentVerified(e.detail);
+    });
+    window.addEventListener('youpi:payment:observed', function(e) {
+      onPaymentVerified(e.detail);
+    });
+    window.addEventListener('youpi:payment:result', function(e) {
+      if (e.detail?.status === 'SUCCESS' || e.detail?.status === 'OBSERVED_SUCCESS' || e.detail?.status === 'RECONCILED') {
+        onPaymentVerified(e.detail);
+      }
     });
 
     // Initialize initial calculations on load

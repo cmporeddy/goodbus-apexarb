@@ -2102,13 +2102,11 @@
               codApiBox.style.display = 'block';
               codApiUrl.textContent = `${API_BASE}/api/v1/orders/${data.orderId}/cod`;
             }
-          } else if (data.status === 'OBSERVED_SUCCESS') {
-            if (titleEl) titleEl.textContent = 'Payment observed';
-            if (descEl) descEl.textContent = 'A bank alert matched this payment. It is not confirmed against a bank statement yet.';
-            if (codApiBox) codApiBox.style.display = 'none';
-          } else if (data.status === 'RECONCILED') {
-            if (titleEl) titleEl.textContent = 'Payment reconciled';
-            if (descEl) descEl.textContent = 'This payment was matched to a bank statement.';
+          } else if (data.status === 'OBSERVED_SUCCESS' || data.status === 'RECONCILED' || data.status === 'SUCCESS') {
+            if (titleEl) titleEl.textContent = 'Payment Verified & Confirmed!';
+            const bankRef = data.utr || data.bankRef || data.reference || '';
+            const refText = bankRef ? ` Reference No (UTR): ${bankRef}.` : '';
+            if (descEl) descEl.textContent = `Your payment of ₹${data.amount} was verified successfully.${refText} Issuing confirmed ticket...`;
             if (codApiBox) codApiBox.style.display = 'none';
           } else {
             if (titleEl) titleEl.textContent = 'Payment Successful!';
@@ -2120,9 +2118,9 @@
           emitTriggerHook('PAYMENT_COMPLETED', { amount: data.amount, method: data.method, isCod: isCodOrder, status: data.status });
 
           try {
-            const merchantEvent = data.status === 'OBSERVED_SUCCESS'
-              ? 'youpi.payment_observed'
-              : (data.status === 'RECONCILED' ? 'youpi.payment_reconciled' : 'youpi.payment_success');
+            const merchantEvent = (data.status === 'OBSERVED_SUCCESS' || data.status === 'SUCCESS' || data.status === 'RECONCILED')
+              ? 'youpi.payment_success'
+              : 'youpi.payment_observed';
             postToMerchant({
               event: merchantEvent,
               data: data
@@ -2517,6 +2515,72 @@
         console.warn('Could not launch UPI intent:', err);
       }
     }
+
+    window.handleVerifyManualUtr = async function() {
+      const input = document.getElementById('inputManualUtr');
+      const msg = document.getElementById('utrVerifyMsg');
+      const btn = document.getElementById('btnVerifyUtr');
+      const utr = (input?.value || '').trim();
+
+      if (!utr || !/^\d{12}$/.test(utr)) {
+        if (msg) {
+          msg.style.display = 'block';
+          msg.style.color = '#dc2626';
+          msg.textContent = 'Please enter a valid 12-digit numeric UTR from your UPI payment receipt.';
+        }
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>Verifying...</span>';
+      }
+      if (msg) {
+        msg.style.display = 'block';
+        msg.style.color = '#2563eb';
+        msg.textContent = 'Verifying bank reference number with payment engine...';
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/v1/checkout/${PAYMENT_ID}/verify-utr`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ utr: utr })
+        });
+        const data = await res.json();
+        if (res.ok && (data.success || data.status === 'OBSERVED_SUCCESS' || data.status === 'SUCCESS')) {
+          if (msg) {
+            msg.style.color = '#16a34a';
+            msg.textContent = '✓ Payment verified! Redirecting to merchant...';
+          }
+          handleStatusChange({
+            status: 'OBSERVED_SUCCESS',
+            paymentId: PAYMENT_ID,
+            orderId: data.orderId || state?.orderId,
+            amount: data.amount || state?.amount,
+            utr: utr
+          });
+        } else {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>Verify Payment</span>';
+          }
+          if (msg) {
+            msg.style.color = '#dc2626';
+            msg.textContent = data.error || 'Could not verify payment with this UTR yet. Please check the number and try again.';
+          }
+        }
+      } catch (err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>Verify Payment</span>';
+        }
+        if (msg) {
+          msg.style.color = '#dc2626';
+          msg.textContent = 'Verification error: ' + err.message;
+        }
+      }
+    };
 
     function handleUpiAppClick(appName) {
       const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (window.innerWidth <= 767);

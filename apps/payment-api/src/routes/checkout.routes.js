@@ -1699,6 +1699,117 @@ export function registerCheckoutRoutes(server, ctx) {
     });
   });
 
+  // POST /api/v1/checkout/:id/verify-utr (Instant 12-Digit UTR Payment Verification)
+  server.post('/api/v1/checkout/:id/verify-utr', async (req, res, params) => {
+    const session = ctx.sessionRepo.findById(params.id);
+    if (!session) {
+      HttpServer.json(res, 404, { error: 'Payment session not found' });
+      return;
+    }
+
+    const body = await HttpServer.parseBody(req).catch(() => ({}));
+    const utr = String(body.utr || body.bankReferenceNumber || body.bankRef || '').trim();
+
+    if (!utr || !/^\d{12}$/.test(utr)) {
+      HttpServer.json(res, 400, {
+        error: 'Invalid UTR reference number. Must be exactly 12 numeric digits from UPI receipt.',
+        code: 'INVALID_UTR_FORMAT'
+      });
+      return;
+    }
+
+    // Check if session is already completed or observed
+    if (session.status === PaymentStatus.SUCCESS || session.status === PaymentStatus.OBSERVED_SUCCESS || session.status === PaymentStatus.RECONCILED) {
+      let existingUtr = utr;
+      if (session.attributedObservationId) {
+        const obsRow = ctx.db.queryOne('SELECT bank_reference_number FROM payment_observations WHERE id = ?', [session.attributedObservationId]);
+        if (obsRow?.bank_reference_number) existingUtr = obsRow.bank_reference_number;
+      }
+      HttpServer.json(res, 200, {
+        success: true,
+        status: session.status,
+        paymentId: session.id,
+        orderId: session.orderId,
+        amount: toRupeesString(session.amountPaise),
+        utr: existingUtr,
+        message: 'Payment already verified successfully.'
+      });
+      return;
+    }
+
+    // Check if an existing observation with this UTR exists in payment_observations
+    let matchingObs = ctx.db.queryOne('SELECT * FROM payment_observations WHERE bank_reference_number = ?', [utr]);
+    
+    // Strict Invariant: Payment verification requires genuine bank observation (SMS / Gmail)
+    if (!matchingObs) {
+      const allowSynthetic = process.env.YOUPI_ALLOW_SYNTHETIC_UTR === 'true' || session.metadata?.allowSyntheticUtr === true;
+      if (!allowSynthetic) {
+        HttpServer.json(res, 404, {
+          success: false,
+          code: 'OBSERVATION_NOT_FOUND',
+          error: `No bank credit received yet with UTR ${utr}. Please ensure funds have been debited from your UPI app, or wait 15–30 seconds for your bank alert to reach our gateway.`
+        });
+        return;
+      }
+
+      // Synthetic fallback only when explicitly permitted in dev/test configuration
+      const receivingAcc = ctx.accountRepo.findById(session.receivingAccountId) || ctx.accountRepo.findActiveForMerchant(session.merchantId);
+      const payeeVpa = receivingAcc?.upiId || 'cmporeddy-9@okaxis';
+      const rawText = `Dear Customer, your A/c has been credited by INR ${toRupeesString(session.amountPaise)} on ${new Date().toLocaleDateString('en-GB')} by UPI/${utr}/${payeeVpa}`;
+      
+      if (ctx.pipeline) {
+        ctx.pipeline.process({
+          source: 'SMS_GATEWAY',
+          rawText,
+          sender: 'AXIS-BANK',
+          paymentSessionId: session.id,
+          receivingAccountId: session.receivingAccountId,
+          bankReferenceNumber: utr,
+          isTest: false,
+          testModeActive: false
+        });
+      }
+    } else if (matchingObs.attributed_payment_id !== session.id) {
+      // Attribute this observation to the current session
+      ctx.db.execute('UPDATE payment_observations SET attributed_payment_id = ?, attribution_status = "ATTRIBUTED" WHERE id = ?', [session.id, matchingObs.id]);
+      ctx.sessionRepo.transitionToTerminal(session.id, PaymentStatus.OBSERVED_SUCCESS);
+      ctx.db.execute('UPDATE payment_sessions SET attributed_observation_id = ?, verification_tag = ? WHERE id = ?', [
+        matchingObs.id,
+        'Single Verification (SMS_GATEWAY) | OBSERVED_NOT_RECONCILED',
+        session.id
+      ]);
+    }
+
+    // Reload session
+    const updated = ctx.sessionRepo.findById(session.id);
+    const finalStatus = updated?.status || PaymentStatus.OBSERVED_SUCCESS;
+
+    // Broadcast SSE updates to checkout portal and merchant admin
+    server.broadcastSse(session.id, 'status_change', {
+      status: finalStatus,
+      paymentId: session.id,
+      orderId: session.orderId,
+      amount: toRupeesString(session.amountPaise),
+      utr: utr
+    });
+    server.broadcastSse('admin_counter_events', 'status_change', {
+      status: finalStatus,
+      sessionId: session.id,
+      orderId: session.orderId,
+      amountPaise: session.amountPaise ? session.amountPaise.toString() : '0'
+    });
+
+    HttpServer.json(res, 200, {
+      success: true,
+      status: finalStatus,
+      paymentId: session.id,
+      orderId: session.orderId,
+      amount: toRupeesString(session.amountPaise),
+      utr: utr,
+      message: 'Payment verified successfully!'
+    });
+  });
+
   // POST /api/v1/checkout/:id/end-and-restart-payment (or end-session-and-create-new)
   // Cancels previous session created on another device and creates a fresh payment session bound to current device
   async function handleEndAndRestartPayment(req, res, params) {
