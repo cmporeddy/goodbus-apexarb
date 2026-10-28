@@ -6,6 +6,8 @@ node_modules/
 # Build Outputs
 dist/
 **/dist/
+target/
+**/target/
 *.tsbuildinfo
 **/*.tsbuildinfo
 .tmp_apk_build/
