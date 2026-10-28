@@ -1,0 +1,53 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /busticket
+
+spring:
+  application:
+    name: busticket
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:busticket;DB_CLOSE_DELAY=-1;MODE=MySQL}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.h2.Driver}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+    show-sql: false
+
+ticketsimply:
+  api:
+    cities-url: https://gds.ticketsimply.com/gds/api/cities.json
+    api-key: TSDBNGAPI30025020
+    cities-cache-cron: "0 0 0 * * SUN"
+    min-available-seats: 1
+    max-available-seats: 6
+    schedule-cron: "0 0 9-22 * * *"
+
+redbus:
+  clientKey: ${REDBUS_CLIENT_KEY:Cwip7ec0vF168kdE1tvXv4rsAiHXPw}
+  clientSecret: ${REDBUS_CLIENT_SECRET:btVWRcmpa5GRSlgcsdHpoOJNqvedeX}
+
+razorpay:
+  key-id: ${RAZORPAY_KEY_ID:rzp_test_TiLQ7YZx7syYTr}
+  key-secret: ${RAZORPAY_KEY_SECRET:Wz2EgFBNDZ6zU113xlRDbVbd}
+  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:rzp_webhook_secret_test}
+  currency: ${RAZORPAY_CURRENCY:INR}
+  company-name: ${RAZORPAY_COMPANY_NAME:GoodBus}
+  theme-color: ${RAZORPAY_THEME_COLOR:#059669}
+  callback-url: ${RAZORPAY_CALLBACK_URL:https://goodbus.apexarblabs.com/}
+
+whatsapp:
+  enabled: ${WHATSAPP_ENABLED:true}
+  api-version: ${WHATSAPP_API_VERSION:v25.0}
+  phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:1388958884294071}
+  access-token: ${WHATSAPP_ACCESS_TOKEN:EAATenZBZBkzdMBSmi33o1XoVUP3r3BehJgJyezrkAvNgJWRkoswbuc9Te8TvhpF1e5cay9k61jeJlxrtWqkegPghKjOHZBetObycZAINsdAXBq8hSAnmtZB0LyfskKplznGo6B4tEZBqhBGnA0UBTqDx8uTONRJUP77Xe2McrjdxgFzNmngXtTPmEZCwmxPBqpK1k0ypinCN3WuXXcuvuyeJRfB54NOozDGdftfJnTKdZCorKezagc1QgtWZC4xoCe3W9AjJRfHbwFpZBXgjZCxsPvihgZDZD}
+  template-name: ${WHATSAPP_TEMPLATE_NAME:jaspers_market_order_confirmation_v1}
+  test-fallback-recipient: ${WHATSAPP_TEST_RECIPIENT:917207904076}
+
+seatseller:
+  mock-confirm: ${SEATSELLER_MOCK_CONFIRM:true}
+
+
