@@ -877,8 +877,14 @@
     }
 
     // Main Payment Handler using YouPI Universal Integration
+    // Main Payment Handler using YouPI Universal Integration
     async function handleBusPayment() {
-      const name = document.getElementById('passengerName').value.trim() || 'Valued Passenger';
+      const btn = document.getElementById('payButton');
+      btn.disabled = true;
+      const oldHtml = btn.innerHTML;
+      btn.innerHTML = '<span>Creating Booking...</span>';
+
+      const name = document.getElementById('passengerName').value.trim() || 'Reddy';
       const phone = document.getElementById('passengerMobile').value.trim() || '8861163436';
       const totalStr = document.getElementById('summaryTotalAmount').textContent.replace('₹', '').trim();
       const totalNum = parseFloat(totalStr);
@@ -890,29 +896,54 @@
 
       const orderId = `GOODBUS-${Date.now().toString().slice(-6)}`;
 
-      // Launch YouPI Modal
-      if (window.Youpi && typeof window.Youpi.pay === 'function') {
+      try {
+        // Create payment session via API proxy
+        const res = await fetch('/api/v1/payments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: orderId,
+            amount: totalNum.toFixed(2),
+            currency: 'INR',
+            customer: {
+              name: name,
+              phoneNumber: phone,
+              email: `${phone}@goodbus.local`
+            },
+            metadata: {
+              service: 'GoodBus (godbus.epicsevelabs.com)',
+              route: `${fromCity} ➔ ${toCity}`,
+              seats: selectedSeats.join(','),
+              busType: currentBusType,
+              gpayAccount: '8861163436'
+            }
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.paymentId) {
+          throw new Error(data.error || 'Failed to create payment session');
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = oldHtml;
+
+        // Use same-origin checkout URL on port 5000 to eliminate any cross-origin framing issues
+        const checkoutUrl = `${window.location.origin}/checkout/${data.paymentId}`;
+
         window.Youpi.pay({
+          checkoutUrl: checkoutUrl,
+          paymentId: data.paymentId,
           order_id: orderId,
           amount: totalNum,
           currency: 'INR',
-          customer: {
-            name: name,
-            phone: phone,
-            email: `${phone}@goodbus.local`
-          },
-          metadata: {
-            service: 'GoodBus (godbus.epicsevelabs.com)',
-            route: `${fromCity} ➔ ${toCity}`,
-            seats: selectedSeats.join(','),
-            busType: currentBusType,
-            gpayAccount: '8861163436'
-          },
+          name: 'GoodBus',
+          description: `${fromCity} to ${toCity} (${currentBusType})`,
           handler: function(response) {
             console.log('Payment Successful:', response);
             renderGeneratedTicket({
               pnr: `GB-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-              utr: response.utr || `UTR-${Date.now().toString().slice(-8)}`,
+              utr: response.utr || data.paymentId.slice(0, 12).toUpperCase(),
               passenger: name,
               phone: phone,
               from: fromCity,
@@ -925,11 +956,15 @@
             });
           },
           onClose: function() {
+            btn.disabled = false;
+            btn.innerHTML = oldHtml;
             console.log('Payment modal dismissed by passenger');
           }
         });
-      } else {
-        alert('YouPI PG script loading. Please refresh the page and try again.');
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = oldHtml;
+        alert('Could not start checkout: ' + err.message);
       }
     }
 

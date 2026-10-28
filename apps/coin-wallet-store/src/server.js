@@ -15,7 +15,7 @@ const BASE_SECURITY_HEADERS = Object.freeze({
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'SAMEORIGIN',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Content-Security-Policy': "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-ancestors 'self'; base-uri 'none'; form-action 'self'; object-src 'none'"
+  'Content-Security-Policy': "default-src 'self' data: blob:; frame-src 'self' http://localhost:* http://127.0.0.1:* http://localhost:7000 http://127.0.0.1:7000 http://localhost:5000 http://127.0.0.1:5000 https:; connect-src 'self' http://localhost:* http://127.0.0.1:* https:; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; frame-ancestors 'self' http://localhost:* http://127.0.0.1:* https:; base-uri 'none'; form-action 'self'; object-src 'none'"
 });
 
 /**
