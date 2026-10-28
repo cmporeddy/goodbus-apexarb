@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #d84e55;
+  --color-primary-hover: #c13a40;
+  --color-primary-active: #a92b31;
+  --color-accent: #d84e55;
+  --color-accent-hover: #c13a40;
+  --color-accent-subtle: #fef2f2;
+  --color-surface-bg: #F7F7F7;
+  --color-surface-card: #ffffff;
+  --color-border-subtle: #f3f4f6;
+  --color-border-default: #e5e7eb;
+  --color-text-main: #1f2937;
+  --color-text-muted: #6b7280;
+  --color-text-dim: #9ca3af;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #F9FAFB;
+  color: #111827;
+}
+
+/* Material Symbols alignment helper */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.material-symbols-outlined.fill-1 {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+@keyframes slideUpToast {
+  from {
+    transform: translate(-50%, 60px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+.animate-toast-slide {
+  animation: slideUpToast 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
