@@ -734,6 +734,12 @@
           <span>&rsaquo;</span>
         </button>
 
+        <button type="button" id="btnTestRe1" class="btn-pay" style="background: linear-gradient(135deg, #059669, #10b981); margin-top: 10px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);" onclick="handleBusPayment(1.00)">
+          <span>🧪 Test Sample QR Code (Pay ₹1.00)</span>
+          <span style="background:rgba(0,0,0,0.25);padding:2px 8px;border-radius:6px;font-weight:800;">₹1.00</span>
+          <span>&rsaquo;</span>
+        </button>
+
         <div class="dev-simulate-box">
           <p>🧪 <strong>Developer Testing Mode Active</strong></p>
           <p>Want to test ticket generation without sending real money?</p>
@@ -877,17 +883,18 @@
     }
 
     // Main Payment Handler using YouPI Universal Integration
-    // Main Payment Handler using YouPI Universal Integration
-    async function handleBusPayment() {
-      const btn = document.getElementById('payButton');
-      btn.disabled = true;
-      const oldHtml = btn.innerHTML;
-      btn.innerHTML = '<span>Creating Booking...</span>';
+    async function handleBusPayment(customAmount) {
+      const isRe1 = typeof customAmount === 'number' && customAmount > 0;
+      const btn = isRe1 ? document.getElementById('btnTestRe1') : document.getElementById('payButton');
+      const oldHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>Creating Booking...</span>';
+      }
 
       const name = document.getElementById('passengerName').value.trim() || 'Reddy';
       const phone = document.getElementById('passengerMobile').value.trim() || '8861163436';
-      const totalStr = document.getElementById('summaryTotalAmount').textContent.replace('₹', '').trim();
-      const totalNum = parseFloat(totalStr);
+      const totalNum = isRe1 ? customAmount : parseFloat(document.getElementById('summaryTotalAmount').textContent.replace('₹', '').trim());
 
       const routeSelect = document.getElementById('routeSelect');
       const opt = routeSelect.options[routeSelect.selectedIndex];
@@ -898,7 +905,7 @@
 
       try {
         // Create payment session via API proxy
-        const res = await fetch('/api/v1/payments', {
+        let res = await fetch('/api/v1/payments', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -916,18 +923,51 @@
               seats: selectedSeats.join(','),
               busType: currentBusType,
               gpayAccount: 'cmporeddy-9@okaxis',
-              passengerPhone: phone
+              passengerPhone: phone,
+              isSampleRe1: isRe1
             }
           })
         });
 
-        const data = await res.json();
+        let data = await res.json();
         if (!res.ok || !data.paymentId) {
-          throw new Error(data.error || 'Failed to create payment session');
+          if (data.session_id) {
+            // Cancel conflicting previous session and retry once cleanly
+            await fetch(`/api/v1/checkout/${data.session_id}/cancel`, { method: 'POST' }).catch(() => {});
+            res = await fetch('/api/v1/payments', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orderId: `${orderId}-R`,
+                amount: totalNum.toFixed(2),
+                currency: 'INR',
+                customer: {
+                  name: name,
+                  phoneNumber: phone,
+                  email: `${phone}@goodbus.local`
+                },
+                metadata: {
+                  service: 'GoodBus (godbus.epicsevelabs.com)',
+                  route: `${fromCity} ➔ ${toCity}`,
+                  seats: selectedSeats.join(','),
+                  busType: currentBusType,
+                  gpayAccount: 'cmporeddy-9@okaxis',
+                  passengerPhone: phone,
+                  isSampleRe1: isRe1
+                }
+              })
+            });
+            data = await res.json();
+          }
+          if (!data.paymentId) {
+            throw new Error(data.error || 'Failed to create payment session');
+          }
         }
 
-        btn.disabled = false;
-        btn.innerHTML = oldHtml;
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = oldHtml;
+        }
 
         // Use same-origin checkout URL on port 5000 with passenger params to auto-bypass OTP verification
         const checkoutUrl = `${window.location.origin}/checkout/${data.paymentId}?customerPhone=${encodeURIComponent(phone)}&customerName=${encodeURIComponent(name)}&customerEmail=${encodeURIComponent(phone + '@goodbus.local')}`;
@@ -939,7 +979,7 @@
           amount: totalNum,
           currency: 'INR',
           name: 'GoodBus',
-          description: `${fromCity} to ${toCity} (${currentBusType})`,
+          description: isRe1 ? 'GoodBus Re. 1.00 Test Ticket' : `${fromCity} to ${toCity} (${currentBusType})`,
           customer: {
             name: name,
             phone: phone,
@@ -962,14 +1002,18 @@
             });
           },
           onClose: function() {
-            btn.disabled = false;
-            btn.innerHTML = oldHtml;
+            if (btn) {
+              btn.disabled = false;
+              btn.innerHTML = oldHtml;
+            }
             console.log('Payment modal dismissed by passenger');
           }
         });
       } catch (err) {
-        btn.disabled = false;
-        btn.innerHTML = oldHtml;
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = oldHtml;
+        }
         alert('Could not start checkout: ' + err.message);
       }
     }
