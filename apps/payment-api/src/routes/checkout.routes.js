@@ -170,8 +170,10 @@ function sanitizePublicBranding(raw = {}) {
  * Recovery: the next create succeeds once a heartbeat is fresh. In-flight sessions are not cancelled.
  */
 export function observerHealthEnforced() {
+  if (process.env.YOUPI_ENFORCE_OBSERVER_HEALTH === 'false') return false;
   if (process.env.YOUPI_ENFORCE_OBSERVER_HEALTH === 'true') return true;
   if (process.env.NODE_ENV === 'test') return false;
+  if (process.env.NODE_ENV === 'development' || process.env.YOUPI_MODE === 'localhost') return false;
   return true;
 }
 
