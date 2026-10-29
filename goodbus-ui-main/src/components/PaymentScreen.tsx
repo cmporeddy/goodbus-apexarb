@@ -151,12 +151,14 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
     const generatedOrderId = `GB_ORD_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
     setActiveOrderId(generatedOrderId);
 
-    // If on a mobile device or touch screen, directly launch the native UPI intent
     const isMobile = typeof window !== 'undefined' && (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768);
+    const directUpiUrl = `upi://pay?pa=${receivingUpiId}&pn=${encodeURIComponent(payeeName)}&tr=${generatedOrderId}&am=${amountToCharge.toFixed(2)}&cu=INR&tn=GoodBusTicket`;
+
+    // If on a mobile device or touch screen, directly launch the native UPI intent
     if (isMobile) {
       setIsProcessing(false);
       setProcessingStatus('');
-      window.location.href = upiIntentUrl;
+      window.location.href = directUpiUrl;
       return;
     }
 
@@ -235,9 +237,12 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
       }
     } catch (_err) {
       setIsProcessing(false);
-      setProcessingStatus('');
-      // Smooth fallback to opening the UPI App directly without error alert
-      window.location.href = upiIntentUrl;
+      copyUpiToClipboard();
+      setUtrStatusMsg({
+        text: `Copied UPI ID (${receivingUpiId})! Scan the QR code below on your mobile phone to complete payment of ₹${amountToCharge.toFixed(2)}.`,
+        type: 'info',
+      });
+      document.getElementById('goodbus-qr-section')?.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -335,55 +340,6 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
     navigator.clipboard.writeText(receivingUpiId);
     setCopiedUpi(true);
     setTimeout(() => setCopiedUpi(false), 2000);
-  };
-
-  const handleLaunchUpiApp = (appName?: 'PhonePe' | 'Google Pay' | 'Paytm' | 'CRED') => {
-    if (isMobileDevice) {
-      const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
-      const query = `pa=${receivingUpiId}&pn=${encodeURIComponent(payeeName)}&tr=${activeOrderId}&am=${effectiveAmount.toFixed(
-        2
-      )}&cu=INR&tn=GoodBusTicket`;
-
-      let targetUrl = `upi://pay?${query}`;
-
-      if (isAndroid && appName) {
-        // Direct Android Intent with targeted package to completely bypass OS app chooser dialog
-        const packageMap: Record<string, string> = {
-          'Google Pay': 'com.google.android.apps.nbu.paisa.user',
-          'PhonePe': 'com.phonepe.app',
-          'Paytm': 'net.one97.paytm',
-          'CRED': 'com.dreamplug.androidapp',
-        };
-        const targetPackage = packageMap[appName];
-        if (targetPackage) {
-          targetUrl = `intent://pay?${query}#Intent;scheme=upi;package=${targetPackage};end`;
-        }
-      } else if (!isAndroid && appName) {
-        // iOS custom scheme handlers
-        const iosSchemeMap: Record<string, string> = {
-          'PhonePe': `phonepe://pay?${query}`,
-          'Paytm': `paytmmp://pay?${query}`,
-          'Google Pay': `gpay://upi/pay?${query}`,
-          'CRED': `credpay://upi/pay?${query}`,
-        };
-        if (iosSchemeMap[appName]) {
-          targetUrl = iosSchemeMap[appName];
-        }
-      }
-
-      try {
-        window.location.href = targetUrl;
-      } catch (_e) {
-        window.location.href = upiIntentUrl;
-      }
-      return;
-    }
-
-    copyUpiToClipboard();
-    setUtrStatusMsg({
-      text: `Copied UPI ID (${receivingUpiId})! Scan the QR code or send ₹${effectiveAmount.toFixed(2)} via ${appName || 'any UPI app'}.`,
-      type: 'info',
-    });
   };
 
   // UPI deep link
@@ -507,48 +463,12 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                         : `Pay ₹${effectiveAmount.toFixed(2)} with any UPI App`}
                     </span>
                   </button>
-
-                  {/* Direct App Deep Links */}
-                  <div className="flex items-center justify-center gap-2 flex-wrap pt-1">
-                    <button
-                      type="button"
-                      onClick={() => handleLaunchUpiApp('Google Pay')}
-                      className="px-3.5 py-1.5 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 rounded-full text-xs font-semibold text-gray-800 shadow-2xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-blue-500" />
-                      <span>Google Pay</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleLaunchUpiApp('PhonePe')}
-                      className="px-3.5 py-1.5 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 rounded-full text-xs font-semibold text-gray-800 shadow-2xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-purple-600" />
-                      <span>PhonePe</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleLaunchUpiApp('Paytm')}
-                      className="px-3.5 py-1.5 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 rounded-full text-xs font-semibold text-gray-800 shadow-2xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-cyan-500" />
-                      <span>Paytm</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleLaunchUpiApp('CRED')}
-                      className="px-3.5 py-1.5 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 rounded-full text-xs font-semibold text-gray-800 shadow-2xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-black" />
-                      <span>CRED</span>
-                    </button>
-                  </div>
                 </div>
 
 
 
                 {/* QR Code Section (Clean high-res QR with no obscuring overlay) */}
-                <div className="pt-2 border-t border-gray-200/60">
+                <div id="goodbus-qr-section" className="pt-2 border-t border-gray-200/60">
                   {isMobileDevice && (
                     <button
                       type="button"
