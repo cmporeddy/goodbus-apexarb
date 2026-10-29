@@ -575,47 +575,10 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                     {copiedUpi ? '✓ Copied' : 'Copy UPI ID'}
                   </button>
                 </div>
-              </div>
-
-              {/* Instant UTR Verification Card */}
-              <div className="p-5 rounded-2xl bg-white border-2 border-emerald-500/30 shadow-xs space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-emerald-600 text-[20px]">verified</span>
-                    <span className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                      Instant UTR Verification
-                    </span>
-                  </div>
-                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
-                    Already Paid?
-                  </span>
-                </div>
-
-                <p className="text-xs text-gray-600 font-light">
-                  If you already transferred funds from Google Pay, PhonePe, or CRED, enter your 12-digit Bank Reference Number (UTR) below for immediate confirmation:
-                </p>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    maxLength={12}
-                    value={manualUtrInput}
-                    onChange={(e) => setManualUtrInput(e.target.value.replace(/[^0-9]/g, ''))}
-                    placeholder="e.g. 630141344124"
-                    className="flex-1 font-mono font-bold text-sm tracking-widest px-4 py-2.5 rounded-full border border-gray-300 focus:outline-none focus:border-emerald-600 bg-gray-50 focus:bg-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleVerifyManualUtr}
-                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-full shadow-xs transition-colors cursor-pointer shrink-0"
-                  >
-                    Verify &amp; Issue Ticket
-                  </button>
-                </div>
 
                 {utrStatusMsg && (
                   <div
-                    className={`text-xs p-2.5 rounded-xl ${
+                    className={`text-xs p-3 rounded-xl font-medium text-center ${
                       utrStatusMsg.type === 'success'
                         ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                         : utrStatusMsg.type === 'error'
@@ -626,14 +589,6 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                     {utrStatusMsg.text}
                   </div>
                 )}
-              </div>
-
-              {/* Real-time Banking Observer Status */}
-              <div className="flex items-center justify-center gap-2 text-xs text-gray-500 bg-slate-50 border border-gray-200 py-2.5 px-4 rounded-full">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[11px] font-medium text-gray-700">
-                  Live Banking Observer Active — SMS &amp; webhook monitoring enabled
-                </span>
               </div>
             </div>
           </div>
