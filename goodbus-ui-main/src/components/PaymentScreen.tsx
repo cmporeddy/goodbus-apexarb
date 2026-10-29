@@ -339,9 +339,46 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
   const handleLaunchUpiApp = (appName?: 'PhonePe' | 'Google Pay' | 'Paytm' | 'CRED') => {
     if (isMobileDevice) {
-      window.location.href = upiIntentUrl;
+      const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+      const query = `pa=${receivingUpiId}&pn=${encodeURIComponent(payeeName)}&tr=${activeOrderId}&am=${effectiveAmount.toFixed(
+        2
+      )}&cu=INR&tn=GoodBusTicket`;
+
+      let targetUrl = `upi://pay?${query}`;
+
+      if (isAndroid && appName) {
+        // Direct Android Intent with targeted package to completely bypass OS app chooser dialog
+        const packageMap: Record<string, string> = {
+          'Google Pay': 'com.google.android.apps.nbu.paisa.user',
+          'PhonePe': 'com.phonepe.app',
+          'Paytm': 'net.one97.paytm',
+          'CRED': 'com.dreamplug.androidapp',
+        };
+        const targetPackage = packageMap[appName];
+        if (targetPackage) {
+          targetUrl = `intent://pay?${query}#Intent;scheme=upi;package=${targetPackage};end`;
+        }
+      } else if (!isAndroid && appName) {
+        // iOS custom scheme handlers
+        const iosSchemeMap: Record<string, string> = {
+          'PhonePe': `phonepe://pay?${query}`,
+          'Paytm': `paytmmp://pay?${query}`,
+          'Google Pay': `gpay://upi/pay?${query}`,
+          'CRED': `credpay://upi/pay?${query}`,
+        };
+        if (iosSchemeMap[appName]) {
+          targetUrl = iosSchemeMap[appName];
+        }
+      }
+
+      try {
+        window.location.href = targetUrl;
+      } catch (_e) {
+        window.location.href = upiIntentUrl;
+      }
       return;
     }
+
     copyUpiToClipboard();
     setUtrStatusMsg({
       text: `Copied UPI ID (${receivingUpiId})! Scan the QR code or send ₹${effectiveAmount.toFixed(2)} via ${appName || 'any UPI app'}.`,
@@ -395,21 +432,6 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
           <div className="lg:col-span-7 space-y-5">
             {/* Payment Method Selector Card */}
             <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-xs space-y-5">
-              {/* Sovereign UPI Banner */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-[#0c2340] to-[#1e3a5f] text-white flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-amber-400 text-[20px]">verified</span>
-                    <span className="text-xs font-bold tracking-wider uppercase text-amber-300">YouPI Gateway</span>
-                  </div>
-                  <h2 className="text-base font-semibold mt-0.5">Direct UPI &amp; Instant Bank Settlement</h2>
-                  <p className="text-[11px] text-slate-200 font-light mt-0.5">Zero PG convenience fees • Direct settlement</p>
-                </div>
-                <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center font-bold text-lg text-white">
-                  ₹
-                </div>
-              </div>
-
               {/* Amount Selection Mode Switcher */}
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500 block">
