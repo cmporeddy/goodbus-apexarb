@@ -40,6 +40,20 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
   const [activeOrderId, setActiveOrderId] = useState<string>(() => `GB_ORD_${Date.now()}`);
   const [utrStatusMsg, setUtrStatusMsg] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [copiedUpi, setCopiedUpi] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
+  });
+  const [showQrOnMobile, setShowQrOnMobile] = useState(false);
+
+  // Auto-detect mobile devices for direct UPI intent vs desktop QR scanning
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileDevice(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768);
+    };
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Active receiving UPI VPA & Merchant details dynamically fetched from server
   const [receivingUpiId, setReceivingUpiId] = useState('cmporeddy-9@okaxis');
@@ -323,6 +337,18 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
     setTimeout(() => setCopiedUpi(false), 2000);
   };
 
+  const handleLaunchUpiApp = (appName?: 'PhonePe' | 'Google Pay' | 'Paytm' | 'CRED') => {
+    if (isMobileDevice) {
+      window.location.href = upiIntentUrl;
+      return;
+    }
+    copyUpiToClipboard();
+    setUtrStatusMsg({
+      text: `Copied UPI ID (${receivingUpiId})! Scan the QR code or send ₹${effectiveAmount.toFixed(2)} via ${appName || 'any UPI app'}.`,
+      type: 'info',
+    });
+  };
+
   // UPI deep link
   const upiIntentUrl = `upi://pay?pa=${receivingUpiId}&pn=${encodeURIComponent(payeeName)}&tr=${activeOrderId}&am=${effectiveAmount.toFixed(
     2
@@ -444,86 +470,134 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
               {/* Dynamic QR Code & UPI Deep Links */}
               <div className="p-5 rounded-2xl bg-gray-50 border border-gray-200 text-center space-y-4">
-                <div className="inline-block p-3 bg-white rounded-2xl border border-gray-200 shadow-sm relative">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=175x175&data=${encodeURIComponent(
-                      upiIntentUrl
-                    )}`}
-                    alt="Scan UPI QR Code"
-                    className="w-[175px] h-[175px] rounded-lg mx-auto"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-8 h-8 rounded-xl bg-white shadow-md flex items-center justify-center text-xs font-bold text-gray-900 border border-gray-200">
-                      पे
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-sm font-semibold text-gray-900">
-                    Scan with any UPI App • Pay <span className="font-mono font-bold text-emerald-700">₹{effectiveAmount.toFixed(2)}</span>
-                  </div>
-                  <div className="flex items-center justify-center gap-1.5 text-xs text-gray-600 mt-1">
-                    <span>Receiving UPI ID:</span>
-                    <span className="font-mono font-bold text-gray-900 bg-white px-2 py-0.5 rounded border border-gray-200">
-                      {receivingUpiId}
+                {/* 1-Tap Mobile UPI Intent Launcher (Prominent at top on mobile) */}
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    disabled={isProcessing}
+                    onClick={() => handleYoupiPayment(isTestMode)}
+                    className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-[#0c2340] hover:from-emerald-700 hover:to-[#163660] text-white font-bold text-sm rounded-full shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-60"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+                    <span>
+                      {isProcessing
+                        ? 'Launching UPI App...'
+                        : `Pay ₹${effectiveAmount.toFixed(2)} with any UPI App`}
                     </span>
+                  </button>
+
+                  {/* Direct App Deep Links */}
+                  <div className="flex items-center justify-center gap-2 flex-wrap pt-1">
                     <button
                       type="button"
-                      onClick={copyUpiToClipboard}
-                      className="text-[11px] text-blue-600 hover:text-blue-700 cursor-pointer underline ml-1"
+                      onClick={() => handleLaunchUpiApp('Google Pay')}
+                      className="px-3.5 py-1.5 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 rounded-full text-xs font-semibold text-gray-800 shadow-2xs flex items-center gap-1.5 cursor-pointer transition-colors"
                     >
-                      {copiedUpi ? 'Copied!' : 'Copy'}
+                      <span className="w-2 h-2 rounded-full bg-blue-500" />
+                      <span>Google Pay</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleLaunchUpiApp('PhonePe')}
+                      className="px-3.5 py-1.5 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 rounded-full text-xs font-semibold text-gray-800 shadow-2xs flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-purple-600" />
+                      <span>PhonePe</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleLaunchUpiApp('Paytm')}
+                      className="px-3.5 py-1.5 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 rounded-full text-xs font-semibold text-gray-800 shadow-2xs flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-cyan-500" />
+                      <span>Paytm</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleLaunchUpiApp('CRED')}
+                      className="px-3.5 py-1.5 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 rounded-full text-xs font-semibold text-gray-800 shadow-2xs flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-black" />
+                      <span>CRED</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Direct App Deep Links */}
-                <div className="flex items-center justify-center gap-2 flex-wrap pt-1">
-                  <a
-                    href={upiIntentUrl}
-                    className="px-3 py-1.5 bg-white border border-gray-200 hover:border-gray-300 rounded-full text-xs font-semibold text-gray-800 shadow-2xs flex items-center gap-1.5"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-blue-500" />
-                    <span>Google Pay</span>
-                  </a>
-                  <a
-                    href={upiIntentUrl}
-                    className="px-3 py-1.5 bg-white border border-gray-200 hover:border-gray-300 rounded-full text-xs font-semibold text-gray-800 shadow-2xs flex items-center gap-1.5"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-purple-600" />
-                    <span>PhonePe</span>
-                  </a>
-                  <a
-                    href={upiIntentUrl}
-                    className="px-3 py-1.5 bg-white border border-gray-200 hover:border-gray-300 rounded-full text-xs font-semibold text-gray-800 shadow-2xs flex items-center gap-1.5"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-cyan-500" />
-                    <span>Paytm</span>
-                  </a>
-                  <a
-                    href={upiIntentUrl}
-                    className="px-3 py-1.5 bg-white border border-gray-200 hover:border-gray-300 rounded-full text-xs font-semibold text-gray-800 shadow-2xs flex items-center gap-1.5"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-black" />
-                    <span>CRED</span>
-                  </a>
+                {/* Informative Security Notice about Gallery QR Limit */}
+                <div className="p-3.5 bg-amber-50/90 border border-amber-200/90 rounded-2xl text-left flex items-start gap-2.5 shadow-2xs">
+                  <span className="material-symbols-outlined text-amber-600 text-[18px] shrink-0 mt-0.5">info</span>
+                  <div className="space-y-1">
+                    <div className="text-xs font-bold text-amber-950">
+                      {isMobileDevice ? 'Paying on this phone? Tap the button above.' : 'Notice: QR Screenshot Gallery Limit'}
+                    </div>
+                    <p className="text-[11px] text-amber-800 leading-relaxed font-light">
+                      {isMobileDevice ? (
+                        <>
+                          Tap <strong>"Pay with any UPI App"</strong> above to launch PhonePe / GPay directly.{' '}
+                          <span className="font-medium text-amber-900">
+                            Avoid screenshotting the QR to scan from gallery
+                          </span>{' '}
+                          — NPCI and UPI apps enforce a strict ₹2,000 security limit when importing QR codes from your photo gallery. Direct 1-tap payment has no gallery limit!
+                        </>
+                      ) : (
+                        <>
+                          Scan the QR code live using your phone’s camera. If taking a screenshot or sharing, note that NPCI and UPI apps cap gallery-scanned QR payments at <strong>₹2,000</strong>.
+                        </>
+                      )}
+                    </p>
+                  </div>
                 </div>
 
-                {/* Main Launch UPI App / Gateway CTA */}
-                <button
-                  type="button"
-                  disabled={isProcessing}
-                  onClick={() => handleYoupiPayment(isTestMode)}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-[#0c2340] hover:from-emerald-700 hover:to-[#163660] text-white font-bold text-sm rounded-full shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-60"
-                >
-                  <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
-                  <span>
-                    {isProcessing
-                      ? 'Launching UPI App...'
-                      : `Pay ₹${effectiveAmount.toFixed(2)} with any UPI App`}
-                  </span>
-                </button>
+                {/* QR Code Section (Clean high-res QR with no obscuring overlay) */}
+                <div className="pt-2 border-t border-gray-200/60">
+                  {isMobileDevice && (
+                    <button
+                      type="button"
+                      onClick={() => setShowQrOnMobile((prev) => !prev)}
+                      className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 underline cursor-pointer mb-3 inline-block"
+                    >
+                      {showQrOnMobile ? '▲ Hide QR Code' : '▼ Or show QR Code to scan from another device'}
+                    </button>
+                  )}
+
+                  {(!isMobileDevice || showQrOnMobile) && (
+                    <div className="space-y-3">
+                      <div className="inline-block p-3 bg-white rounded-2xl border border-gray-200 shadow-xs">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&ecc=H&margin=2&data=${encodeURIComponent(
+                            upiIntentUrl
+                          )}`}
+                          alt="Scan UPI QR Code"
+                          className="w-[190px] h-[190px] rounded-lg mx-auto"
+                        />
+                      </div>
+                      <div className="text-xs text-gray-500 font-light">
+                        {isMobileDevice
+                          ? 'Aim your second phone’s camera at this screen to pay'
+                          : 'Aim your phone’s live camera at this QR code to complete payment'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Prominent Manual UPI ID Copy Card (Completely Bypasses Gallery Limits) */}
+                <div className="p-3 bg-white rounded-xl border border-gray-200 flex items-center justify-between gap-2 text-left shadow-2xs">
+                  <div className="min-w-0">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">
+                      Merchant UPI ID (Direct Transfer)
+                    </span>
+                    <span className="font-mono font-bold text-xs text-gray-900 select-all truncate block">
+                      {receivingUpiId}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={copyUpiToClipboard}
+                    className="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 active:bg-gray-200 border border-gray-300 rounded-lg text-xs font-bold text-blue-600 transition-colors cursor-pointer shrink-0"
+                  >
+                    {copiedUpi ? '✓ Copied' : 'Copy UPI ID'}
+                  </button>
+                </div>
               </div>
 
               {/* Instant UTR Verification Card */}
