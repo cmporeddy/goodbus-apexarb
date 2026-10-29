@@ -523,30 +523,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                   </div>
                 </div>
 
-                {/* Informative Security Notice about Gallery QR Limit */}
-                <div className="p-3.5 bg-amber-50/90 border border-amber-200/90 rounded-2xl text-left flex items-start gap-2.5 shadow-2xs">
-                  <span className="material-symbols-outlined text-amber-600 text-[18px] shrink-0 mt-0.5">info</span>
-                  <div className="space-y-1">
-                    <div className="text-xs font-bold text-amber-950">
-                      {isMobileDevice ? 'Paying on this phone? Tap the button above.' : 'Notice: QR Screenshot Gallery Limit'}
-                    </div>
-                    <p className="text-[11px] text-amber-800 leading-relaxed font-light">
-                      {isMobileDevice ? (
-                        <>
-                          Tap <strong>"Pay with any UPI App"</strong> above to launch PhonePe / GPay directly.{' '}
-                          <span className="font-medium text-amber-900">
-                            Avoid screenshotting the QR to scan from gallery
-                          </span>{' '}
-                          — NPCI and UPI apps enforce a strict ₹2,000 security limit when importing QR codes from your photo gallery. Direct 1-tap payment has no gallery limit!
-                        </>
-                      ) : (
-                        <>
-                          Scan the QR code live using your phone’s camera. If taking a screenshot or sharing, note that NPCI and UPI apps cap gallery-scanned QR payments at <strong>₹2,000</strong>.
-                        </>
-                      )}
-                    </p>
-                  </div>
-                </div>
+
 
                 {/* QR Code Section (Clean high-res QR with no obscuring overlay) */}
                 <div className="pt-2 border-t border-gray-200/60">
