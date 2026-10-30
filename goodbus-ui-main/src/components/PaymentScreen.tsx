@@ -45,6 +45,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
     return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
   });
   const [showQrOnMobile, setShowQrOnMobile] = useState(false);
+  const [showUpiChooser, setShowUpiChooser] = useState(false);
 
   // Auto-detect mobile devices for direct UPI intent vs desktop QR scanning
   useEffect(() => {
@@ -152,13 +153,12 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
     setActiveOrderId(generatedOrderId);
 
     const isMobile = typeof window !== 'undefined' && (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768);
-    const directUpiUrl = `upi://pay?pa=${receivingUpiId}&pn=${encodeURIComponent(payeeName)}&tr=${generatedOrderId}&am=${amountToCharge.toFixed(2)}&cu=INR&tn=GoodBusTicket`;
 
-    // If on a mobile device or touch screen, directly launch the native UPI intent
+    // If on a mobile device or touch screen, open the custom Choose UPI App sheet
     if (isMobile) {
       setIsProcessing(false);
       setProcessingStatus('');
-      window.location.href = directUpiUrl;
+      setShowUpiChooser(true);
       return;
     }
 
@@ -244,6 +244,50 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
       });
       document.getElementById('goodbus-qr-section')?.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  // Launch specific app chosen by user from the in-app chooser
+  const handleSelectApp = (appKey: 'gpay' | 'phonepe' | 'paytm' | 'cred' | 'system') => {
+    setShowUpiChooser(false);
+    setIsProcessing(true);
+    setProcessingStatus('Launching UPI app...');
+
+    const amountToCharge = isTestMode ? 1.00 : totalAmount;
+    const generatedOrderId = `GB_ORD_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+    setActiveOrderId(generatedOrderId);
+
+    const query = `pa=${receivingUpiId}&pn=${encodeURIComponent(payeeName)}&tr=${generatedOrderId}&am=${amountToCharge.toFixed(2)}&cu=INR&tn=GoodBusTicket`;
+
+    const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+    let targetUrl = `upi://pay?${query}`;
+
+    if (appKey === 'phonepe') {
+      targetUrl = `phonepe://pay?${query}`;
+    } else if (appKey === 'paytm') {
+      targetUrl = `paytmmp://pay?${query}`;
+    } else if (appKey === 'cred') {
+      targetUrl = `credpay://upi/pay?${query}`;
+    } else if (appKey === 'gpay') {
+      if (isAndroid) {
+        targetUrl = `intent://pay?${query}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
+      } else {
+        targetUrl = `gpay://upi/pay?${query}`;
+      }
+    } else {
+      // System / Other UPI apps
+      targetUrl = `upi://pay?${query}`;
+    }
+
+    try {
+      window.location.href = targetUrl;
+    } catch (_e) {
+      window.location.href = `upi://pay?${query}`;
+    }
+
+    setTimeout(() => {
+      setIsProcessing(false);
+      setProcessingStatus('');
+    }, 2500);
   };
 
   // Instant UTR Verification Handler — STRICT FAIL-CLOSED (No Fake Confirmations)
@@ -460,8 +504,9 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                     <span>
                       {isProcessing
                         ? 'Launching UPI App...'
-                        : `Pay ₹${effectiveAmount.toFixed(2)} with any UPI App`}
+                        : `Pay ₹${effectiveAmount.toFixed(2)} — Choose UPI App`}
                     </span>
+                    <span className="material-symbols-outlined text-[18px]">keyboard_arrow_right</span>
                   </button>
                 </div>
 
@@ -630,6 +675,136 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Native-Like In-App UPI Chooser Bottom Sheet / Modal */}
+      {showUpiChooser && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div
+            className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden border border-gray-100"
+            role="dialog"
+            aria-modal="true"
+          >
+            {/* Header */}
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-slate-50/70">
+              <div>
+                <h3 className="font-bold text-gray-900 text-base">Choose UPI App</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Paying <span className="font-bold font-mono text-emerald-700">₹{effectiveAmount.toFixed(2)}</span> to {payeeName}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowUpiChooser(false)}
+                className="w-8 h-8 rounded-full bg-gray-200/80 hover:bg-gray-300 text-gray-600 flex items-center justify-center transition-colors cursor-pointer text-sm font-bold"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* List of UPI Apps: GPay and PhonePe on top, CRED down in the list per user request */}
+            <div className="p-4 space-y-2.5 max-h-[70vh] overflow-y-auto">
+              {/* Google Pay */}
+              <button
+                type="button"
+                onClick={() => handleSelectApp('gpay')}
+                className="w-full p-3.5 rounded-2xl border border-gray-200 hover:border-blue-400 hover:bg-blue-50/30 flex items-center justify-between text-left transition-all cursor-pointer group active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 shadow-2xs flex items-center justify-center font-bold text-sm tracking-tighter">
+                    <span className="text-blue-500">G</span>
+                    <span className="text-red-500">P</span>
+                    <span className="text-yellow-500">a</span>
+                    <span className="text-green-500">y</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900 group-hover:text-blue-700">Google Pay</div>
+                    <div className="text-[11px] text-gray-500 font-light">Fast checkout with GPay</div>
+                  </div>
+                </div>
+                <span className="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-blue-600">chevron_right</span>
+              </button>
+
+              {/* PhonePe */}
+              <button
+                type="button"
+                onClick={() => handleSelectApp('phonepe')}
+                className="w-full p-3.5 rounded-2xl border border-gray-200 hover:border-purple-400 hover:bg-purple-50/30 flex items-center justify-between text-left transition-all cursor-pointer group active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-[#5f259f] text-white flex items-center justify-center font-bold text-base shadow-2xs">
+                    पे
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900 group-hover:text-purple-700">PhonePe</div>
+                    <div className="text-[11px] text-gray-500 font-light">Instant UPI intent transfer</div>
+                  </div>
+                </div>
+                <span className="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-purple-600">chevron_right</span>
+              </button>
+
+              {/* Paytm */}
+              <button
+                type="button"
+                onClick={() => handleSelectApp('paytm')}
+                className="w-full p-3.5 rounded-2xl border border-gray-200 hover:border-cyan-400 hover:bg-cyan-50/30 flex items-center justify-between text-left transition-all cursor-pointer group active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-[#002e6e] text-[#00baf2] flex items-center justify-center font-black text-xs shadow-2xs">
+                    Paytm
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900 group-hover:text-cyan-700">Paytm</div>
+                    <div className="text-[11px] text-gray-500 font-light">UPI & Wallet payment</div>
+                  </div>
+                </div>
+                <span className="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-cyan-600">chevron_right</span>
+              </button>
+
+              {/* CRED (Down in the list as requested) */}
+              <button
+                type="button"
+                onClick={() => handleSelectApp('cred')}
+                className="w-full p-3.5 rounded-2xl border border-gray-200 hover:border-gray-900 hover:bg-gray-50 flex items-center justify-between text-left transition-all cursor-pointer group active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-black text-white flex items-center justify-center font-bold text-xs shadow-2xs">
+                    CRED
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900 group-hover:text-black">CRED</div>
+                    <div className="text-[11px] text-gray-500 font-light">Pay using CRED UPI</div>
+                  </div>
+                </div>
+                <span className="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-black">chevron_right</span>
+              </button>
+
+              {/* Other UPI Apps (Native OS Chooser) */}
+              <button
+                type="button"
+                onClick={() => handleSelectApp('system')}
+                className="w-full p-3.5 rounded-2xl border border-dashed border-gray-300 hover:border-emerald-600 hover:bg-emerald-50/30 flex items-center justify-between text-left transition-all cursor-pointer group active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-2xs">
+                    <span className="material-symbols-outlined text-[22px]">apps</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900 group-hover:text-emerald-700">Other UPI Apps</div>
+                    <div className="text-[11px] text-gray-500 font-light">DBS India, iMobile, BHIM, INDIE, etc.</div>
+                  </div>
+                </div>
+                <span className="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-emerald-600">chevron_right</span>
+              </button>
+            </div>
+
+            {/* Android default tip */}
+            <div className="p-3.5 bg-gray-50 border-t border-gray-100 text-[11px] text-gray-500 text-center">
+              💡 Tip: If Android opens CRED automatically, clear defaults in <span className="font-semibold text-gray-700">Settings → Apps → CRED → Clear Defaults</span>.
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };
