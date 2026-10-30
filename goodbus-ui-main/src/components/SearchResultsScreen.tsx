@@ -8,6 +8,7 @@ import {
 } from '../services/redbusService';
 import { Seat } from '../types';
 import { SeatLayout } from './SeatLayout';
+import { FunnyBusLoader } from './FunnyBusLoader';
 
 interface SearchResultsScreenProps {
   sourceCity: string;
@@ -64,6 +65,7 @@ export const SearchResultsScreen: React.FC<SearchResultsScreenProps> = ({
   const [filterAmenities, setFilterAmenities] = useState<string[]>([]);
   const [operatorSearchQuery, setOperatorSearchQuery] = useState<string>('');
   const [showAllOperators, setShowAllOperators] = useState<boolean>(false);
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState<boolean>(false);
 
   // Fetch available trips dynamically from backend API
   const loadAvailableTrips = async (bypassCache: boolean = false) => {
@@ -282,6 +284,196 @@ export const SearchResultsScreen: React.FC<SearchResultsScreenProps> = ({
     return list;
   }, [filteredTrips, sortBy]);
 
+  const renderFilterContent = (showHeader = true) => (
+    <div className="space-y-6">
+      {/* Header */}
+      {showHeader && (
+        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[20px] text-gray-900">tune</span>
+            <h3 className="font-bold text-gray-900 text-sm">Filters</h3>
+            {activeFiltersCount > 0 && (
+              <span className="bg-[#d84e55] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {activeFiltersCount}
+              </span>
+            )}
+          </div>
+          {activeFiltersCount > 0 && (
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="text-xs text-[#d84e55] hover:underline font-semibold cursor-pointer"
+            >
+              Reset All
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Bus Type Filter */}
+      <div>
+        <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-3">
+          Bus Type
+        </h4>
+        <div className="space-y-2.5 text-xs">
+          {[
+            { key: 'AC', label: 'AC Coach', count: typeCounts.acCount },
+            { key: 'Non-AC', label: 'Non-AC', count: typeCounts.nonAcCount },
+            { key: 'Sleeper', label: 'Sleeper', count: typeCounts.sleeperCount },
+            { key: 'Seater', label: 'Seater', count: typeCounts.seaterCount }
+          ].map((item) => (
+            <label
+              key={item.key}
+              className="flex items-center justify-between cursor-pointer select-none text-gray-700 hover:text-gray-900 py-0.5"
+            >
+              <div className="flex items-center gap-2.5">
+                <input
+                  type="checkbox"
+                  checked={filterBusTypes.includes(item.key)}
+                  onChange={() => toggleFilter(filterBusTypes, setFilterBusTypes, item.key)}
+                  className="w-4 h-4 rounded border-gray-300 text-[#d84e55] focus:ring-[#d84e55] cursor-pointer"
+                />
+                <span>{item.label}</span>
+              </div>
+              <span className="text-[11px] text-gray-400 font-mono">({item.count})</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Departure Time Slots */}
+      <div>
+        <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-3">
+          Departure Time
+        </h4>
+        <div className="grid grid-cols-2 gap-2 text-[11px]">
+          {[
+            { label: 'Morning', time: '6am - 12pm', icon: 'wb_sunny', count: timeCounts.morning },
+            { label: 'Afternoon', time: '12pm - 6pm', icon: 'wb_twilight', count: timeCounts.afternoon },
+            { label: 'Evening', time: '6pm - 11pm', icon: 'nights_stay', count: timeCounts.evening },
+            { label: 'Night', time: '11pm - 6am', icon: 'bedtime', count: timeCounts.night }
+          ].map((slot) => {
+            const active = filterDepartureTimes.includes(slot.label);
+            return (
+              <button
+                key={slot.label}
+                type="button"
+                onClick={() => toggleFilter(filterDepartureTimes, setFilterDepartureTimes, slot.label)}
+                className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
+                  active
+                    ? 'bg-[#d84e55] text-white border-[#d84e55] shadow-xs'
+                    : 'bg-gray-50/70 hover:bg-gray-100 border-gray-200 text-gray-700'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[16px] block mb-1">
+                  {slot.icon}
+                </span>
+                <span className="font-semibold block">{slot.label}</span>
+                <span className="text-[9px] opacity-80 block">{slot.time}</span>
+                <span className="text-[10px] font-mono opacity-90 font-medium mt-0.5 block">
+                  ({slot.count})
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Operators Filter */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
+            Bus Operators
+          </h4>
+          <span className="text-[10px] text-gray-400 font-medium">
+            {operatorStats.length} total
+          </span>
+        </div>
+
+        {/* Search operator */}
+        {operatorStats.length > 6 && (
+          <div className="relative mb-2.5">
+            <input
+              type="text"
+              placeholder="Search operator..."
+              value={operatorSearchQuery}
+              onChange={(e) => setOperatorSearchQuery(e.target.value)}
+              className="w-full text-xs pl-7 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#d84e55]"
+            />
+            <span className="material-symbols-outlined absolute left-2 top-2 text-[14px] text-gray-400">
+              search
+            </span>
+          </div>
+        )}
+
+        <div className="space-y-2 text-xs max-h-48 overflow-y-auto pr-1">
+          {visibleOperators.map((op) => (
+            <label
+              key={op.name}
+              className="flex items-center justify-between cursor-pointer select-none text-gray-700 hover:text-gray-900 py-0.5"
+            >
+              <div className="flex items-center gap-2.5 truncate mr-2">
+                <input
+                  type="checkbox"
+                  checked={filterOperators.includes(op.name)}
+                  onChange={() => toggleFilter(filterOperators, setFilterOperators, op.name)}
+                  className="w-4 h-4 rounded border-gray-300 text-[#d84e55] focus:ring-[#d84e55] cursor-pointer shrink-0"
+                />
+                <span className="truncate capitalize">{op.name.toLowerCase()}</span>
+              </div>
+              <span className="text-[10px] text-gray-400 font-mono shrink-0">
+                ({op.count})
+              </span>
+            </label>
+          ))}
+
+          {visibleOperators.length === 0 && (
+            <p className="text-[11px] text-gray-400 italic py-1">No operators matching search</p>
+          )}
+        </div>
+
+        {operatorStats.length > 7 && !operatorSearchQuery && (
+          <button
+            type="button"
+            onClick={() => setShowAllOperators(!showAllOperators)}
+            className="text-xs text-[#d84e55] hover:underline font-semibold mt-2.5 block cursor-pointer"
+          >
+            {showAllOperators ? 'Show Less' : `+ Show All (${operatorStats.length})`}
+          </button>
+        )}
+      </div>
+
+      {/* Amenities & Features */}
+      <div>
+        <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-3">
+          Amenities &amp; Rules
+        </h4>
+        <div className="space-y-2.5 text-xs">
+          {[
+            { key: 'GPS', label: 'GPS Tracking', icon: 'gps_fixed' },
+            { key: 'Single Seats', label: 'Single Seats Available', icon: 'airline_seat_recline_extra' }
+          ].map((item) => (
+            <label
+              key={item.key}
+              className="flex items-center gap-2.5 cursor-pointer select-none text-gray-700 hover:text-gray-900"
+            >
+              <input
+                type="checkbox"
+                checked={filterAmenities.includes(item.key)}
+                onChange={() => toggleFilter(filterAmenities, setFilterAmenities, item.key)}
+                className="w-4 h-4 rounded border-gray-300 text-[#d84e55] focus:ring-[#d84e55] cursor-pointer"
+              />
+              <span className="material-symbols-outlined text-[15px] text-gray-400">
+                {item.icon}
+              </span>
+              <span>{item.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <main className="min-h-screen pt-20 pb-16 bg-[#F8F9FA]">
       {/* Sticky Search Context Bar */}
@@ -365,197 +557,81 @@ export const SearchResultsScreen: React.FC<SearchResultsScreenProps> = ({
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Filter Sidebar */}
-          <aside className="lg:col-span-3 space-y-5">
-            <div className="bg-white rounded-3xl p-5 border border-gray-200/70 shadow-xs space-y-6">
-              {/* Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[20px] text-gray-900">tune</span>
-                  <h3 className="font-bold text-gray-900 text-sm">Filters</h3>
-                  {activeFiltersCount > 0 && (
-                    <span className="bg-[#d84e55] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                      {activeFiltersCount}
-                    </span>
-                  )}
-                </div>
-                {activeFiltersCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={clearAllFilters}
-                    className="text-xs text-[#d84e55] hover:underline font-semibold cursor-pointer"
-                  >
-                    Reset All
-                  </button>
-                )}
-              </div>
-
-              {/* Bus Type Filter */}
-              <div>
-                <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-3">
-                  Bus Type
-                </h4>
-                <div className="space-y-2.5 text-xs">
-                  {[
-                    { key: 'AC', label: 'AC Coach', count: typeCounts.acCount },
-                    { key: 'Non-AC', label: 'Non-AC', count: typeCounts.nonAcCount },
-                    { key: 'Sleeper', label: 'Sleeper', count: typeCounts.sleeperCount },
-                    { key: 'Seater', label: 'Seater', count: typeCounts.seaterCount }
-                  ].map((item) => (
-                    <label
-                      key={item.key}
-                      className="flex items-center justify-between cursor-pointer select-none text-gray-700 hover:text-gray-900 py-0.5"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="checkbox"
-                          checked={filterBusTypes.includes(item.key)}
-                          onChange={() => toggleFilter(filterBusTypes, setFilterBusTypes, item.key)}
-                          className="w-4 h-4 rounded border-gray-300 text-[#d84e55] focus:ring-[#d84e55] cursor-pointer"
-                        />
-                        <span>{item.label}</span>
-                      </div>
-                      <span className="text-[11px] text-gray-400 font-mono">({item.count})</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Departure Time Slots */}
-              <div>
-                <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-3">
-                  Departure Time
-                </h4>
-                <div className="grid grid-cols-2 gap-2 text-[11px]">
-                  {[
-                    { label: 'Morning', time: '6am - 12pm', icon: 'wb_sunny', count: timeCounts.morning },
-                    { label: 'Afternoon', time: '12pm - 6pm', icon: 'wb_twilight', count: timeCounts.afternoon },
-                    { label: 'Evening', time: '6pm - 11pm', icon: 'nights_stay', count: timeCounts.evening },
-                    { label: 'Night', time: '11pm - 6am', icon: 'bedtime', count: timeCounts.night }
-                  ].map((slot) => {
-                    const active = filterDepartureTimes.includes(slot.label);
-                    return (
-                      <button
-                        key={slot.label}
-                        type="button"
-                        onClick={() => toggleFilter(filterDepartureTimes, setFilterDepartureTimes, slot.label)}
-                        className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
-                          active
-                            ? 'bg-[#d84e55] text-white border-[#d84e55] shadow-xs'
-                            : 'bg-gray-50/70 hover:bg-gray-100 border-gray-200 text-gray-700'
-                        }`}
-                      >
-                        <span className="material-symbols-outlined text-[16px] block mb-1">
-                          {slot.icon}
-                        </span>
-                        <span className="font-semibold block">{slot.label}</span>
-                        <span className="text-[9px] opacity-80 block">{slot.time}</span>
-                        <span className="text-[10px] font-mono opacity-90 font-medium mt-0.5 block">
-                          ({slot.count})
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Operators Filter */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
-                    Bus Operators
-                  </h4>
-                  <span className="text-[10px] text-gray-400 font-medium">
-                    {operatorStats.length} total
-                  </span>
-                </div>
-
-                {/* Search operator */}
-                {operatorStats.length > 6 && (
-                  <div className="relative mb-2.5">
-                    <input
-                      type="text"
-                      placeholder="Search operator..."
-                      value={operatorSearchQuery}
-                      onChange={(e) => setOperatorSearchQuery(e.target.value)}
-                      className="w-full text-xs pl-7 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#d84e55]"
-                    />
-                    <span className="material-symbols-outlined absolute left-2 top-2 text-[14px] text-gray-400">
-                      search
-                    </span>
-                  </div>
-                )}
-
-                <div className="space-y-2 text-xs max-h-48 overflow-y-auto pr-1">
-                  {visibleOperators.map((op) => (
-                    <label
-                      key={op.name}
-                      className="flex items-center justify-between cursor-pointer select-none text-gray-700 hover:text-gray-900 py-0.5"
-                    >
-                      <div className="flex items-center gap-2.5 truncate mr-2">
-                        <input
-                          type="checkbox"
-                          checked={filterOperators.includes(op.name)}
-                          onChange={() => toggleFilter(filterOperators, setFilterOperators, op.name)}
-                          className="w-4 h-4 rounded border-gray-300 text-[#d84e55] focus:ring-[#d84e55] cursor-pointer shrink-0"
-                        />
-                        <span className="truncate capitalize">{op.name.toLowerCase()}</span>
-                      </div>
-                      <span className="text-[10px] text-gray-400 font-mono shrink-0">
-                        ({op.count})
-                      </span>
-                    </label>
-                  ))}
-
-                  {visibleOperators.length === 0 && (
-                    <p className="text-[11px] text-gray-400 italic py-1">No operators matching search</p>
-                  )}
-                </div>
-
-                {operatorStats.length > 7 && !operatorSearchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllOperators(!showAllOperators)}
-                    className="text-xs text-[#d84e55] hover:underline font-semibold mt-2.5 block cursor-pointer"
-                  >
-                    {showAllOperators ? 'Show Less' : `+ Show All (${operatorStats.length})`}
-                  </button>
-                )}
-              </div>
-
-              {/* Amenities & Features */}
-              <div>
-                <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-3">
-                  Amenities & Rules
-                </h4>
-                <div className="space-y-2.5 text-xs">
-                  {[
-                    { key: 'GPS', label: 'GPS Tracking', icon: 'gps_fixed' },
-                    { key: 'Single Seats', label: 'Single Seats Available', icon: 'airline_seat_recline_extra' }
-                  ].map((item) => (
-                    <label
-                      key={item.key}
-                      className="flex items-center gap-2.5 cursor-pointer select-none text-gray-700 hover:text-gray-900"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={filterAmenities.includes(item.key)}
-                        onChange={() => toggleFilter(filterAmenities, setFilterAmenities, item.key)}
-                        className="w-4 h-4 rounded border-gray-300 text-[#d84e55] focus:ring-[#d84e55] cursor-pointer"
-                      />
-                      <span className="material-symbols-outlined text-[15px] text-gray-400">
-                        {item.icon}
-                      </span>
-                      <span>{item.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+          {/* Left Filter Sidebar - Visible on Desktop */}
+          <aside className="hidden lg:block lg:col-span-3 space-y-5">
+            <div className="bg-white rounded-3xl p-5 border border-gray-200/70 shadow-xs space-y-6 sticky top-32">
+              {renderFilterContent(true)}
             </div>
           </aside>
 
           {/* Right Main Bus Results Column */}
           <div className="lg:col-span-9 space-y-4">
+            {/* Mobile Collapsible Filters & Quick Toolbar */}
+            <div className="lg:hidden space-y-2">
+              <div className="bg-white p-3 rounded-2xl border border-gray-200/70 shadow-xs flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                    isMobileFiltersOpen || activeFiltersCount > 0
+                      ? 'bg-[#d84e55] text-white shadow-xs'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[17px]">tune</span>
+                  <span>{isMobileFiltersOpen ? 'Hide Filters' : 'Filters'}</span>
+                  {activeFiltersCount > 0 && (
+                    <span className="bg-white text-[#d84e55] text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                  <span className="material-symbols-outlined text-[17px]">
+                    {isMobileFiltersOpen ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  {activeFiltersCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearAllFilters}
+                      className="text-xs text-[#d84e55] font-semibold hover:underline cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                  <span className="text-xs font-bold text-gray-600 bg-gray-100/90 px-2.5 py-1 rounded-full">
+                    {sortedTrips.length} {sortedTrips.length === 1 ? 'Bus' : 'Buses'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Mobile Expanded Filters Panel */}
+              {isMobileFiltersOpen && (
+                <div className="bg-white rounded-3xl p-5 border border-gray-200/80 shadow-md space-y-5 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[20px] text-gray-900">tune</span>
+                      <h3 className="font-bold text-gray-900 text-sm">Filter Results</h3>
+                      {activeFiltersCount > 0 && (
+                        <span className="bg-[#d84e55] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                          {activeFiltersCount} active
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsMobileFiltersOpen(false)}
+                      className="px-3.5 py-1.5 bg-[#d84e55] hover:bg-[#c13a40] text-white text-xs font-semibold rounded-full shadow-xs cursor-pointer"
+                    >
+                      Apply &amp; View Buses
+                    </button>
+                  </div>
+                  {renderFilterContent(false)}
+                </div>
+              )}
+            </div>
+
             {/* Sort Bar */}
             <div className="bg-white p-3.5 rounded-3xl border border-gray-200/70 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
@@ -603,38 +679,12 @@ export const SearchResultsScreen: React.FC<SearchResultsScreenProps> = ({
               </div>
             )}
 
-            {/* Loading Skeletons */}
+            {/* Loading State - Delightful & Funny Bus Animation */}
             {isLoading && (
-              <div className="space-y-4">
-                {[1, 2, 3, 4, 5].map((idx) => (
-                  <div
-                    key={idx}
-                    className="bg-white rounded-3xl p-6 border border-gray-200/70 shadow-xs animate-pulse"
-                  >
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-gray-200"></div>
-                        <div className="space-y-2">
-                          <div className="h-4 w-40 bg-gray-200 rounded"></div>
-                          <div className="h-3 w-28 bg-gray-100 rounded"></div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-6">
-                        <div className="h-6 w-16 bg-gray-200 rounded"></div>
-                        <div className="h-4 w-20 bg-gray-100 rounded"></div>
-                        <div className="h-6 w-16 bg-gray-200 rounded"></div>
-                      </div>
-                      <div className="flex items-center gap-4 justify-between md:justify-end">
-                        <div className="space-y-1 text-right">
-                          <div className="h-5 w-16 bg-gray-200 rounded ml-auto"></div>
-                          <div className="h-3 w-12 bg-gray-100 rounded ml-auto"></div>
-                        </div>
-                        <div className="h-9 w-28 bg-gray-200 rounded-full"></div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <FunnyBusLoader
+                sourceCity={sourceCity}
+                destinationCity={destinationCity}
+              />
             )}
 
             {/* Empty State */}
