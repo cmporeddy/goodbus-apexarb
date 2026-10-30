@@ -243,7 +243,10 @@ export function registerAdminRoutes(server, ctx) {
         verificationSources: p.verificationSources || [],
         verificationTag: p.verificationTag || 'UNVERIFIED',
         createdAt: p.createdAt,
-        completedAt: p.completedAt
+        completedAt: p.completedAt,
+        utr: p.attributedObservationId
+          ? (ctx.db.queryOne('SELECT bank_reference_number FROM payment_observations WHERE id = ?', [p.attributedObservationId])?.bank_reference_number || null)
+          : null
       }))
     });
   });

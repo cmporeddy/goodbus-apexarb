@@ -526,6 +526,7 @@ export function registerPollerRoutes(server, ctx) {
         accepted: false,
         status: 'REJECTED',
         reason: 'FRAUDULENT_PAYMENT_INJECTION',
+        clientMessageId: body.clientMessageId || undefined,
         threatDetected: true,
         banned: true,
         error: 'FRAUDULENT_PAYMENT_INJECTION: Fake SMS detected. Associated customer identity banned and session terminated.'
@@ -537,6 +538,7 @@ export function registerPollerRoutes(server, ctx) {
       ctx.db.execute("UPDATE android_devices SET last_observation_at = datetime('now') WHERE id = ?", [deviceId]);
       HttpServer.json(res, 200, {
         accepted: true,
+        clientMessageId: body.clientMessageId || undefined,
         observationId: pipeResult.messageId || pipeResult.stages?.stage6?.details?.observationId,
         attribution: pipeResult.stages?.stage6?.details || pipeResult,
         pipeline: pipeResult
@@ -550,6 +552,7 @@ export function registerPollerRoutes(server, ctx) {
         accepted: false,
         status: 'REJECTED',
         reason: pipeResult.failingCondition,
+        clientMessageId: body.clientMessageId || undefined,
         error: pipeResult.failingReason || pipeResult.details,
         pipeline: pipeResult
       });
@@ -564,6 +567,7 @@ export function registerPollerRoutes(server, ctx) {
       HttpServer.json(res, 200, {
         accepted: true,
         status: 'PROCESSED_NON_BANK',
+        clientMessageId: body.clientMessageId || undefined,
         bankMatch: false,
         message: 'Raw SMS observation ingested and evaluated by server pipeline.'
       });
@@ -576,6 +580,7 @@ export function registerPollerRoutes(server, ctx) {
       accepted: false,
       status: pipeResult.status || 'UNRESOLVED',
       reason: pipeResult.stages?.stage6?.outcomeStatus || pipeResult.failingCondition || 'UNRESOLVED_OBSERVATION',
+      clientMessageId: body.clientMessageId || undefined,
       observationId: pipeResult.messageId || pipeResult.stages?.stage6?.details?.observationId,
       error: pipeResult.failingReason || 'Payment observation could not be verified or attributed.',
       pipeline: pipeResult

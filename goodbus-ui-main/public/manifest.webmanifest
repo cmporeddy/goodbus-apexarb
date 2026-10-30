@@ -1,0 +1,56 @@
+{
+  "name": "goodbus.in - Bus Booking",
+  "short_name": "GoodBus",
+  "description": "Fast and frictionless intercity bus booking across India with instant checkout, live seat selection, and zero booking fee UPI.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c2340",
+  "theme_color": "#0c2340",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "travel",
+    "transportation",
+    "lifestyle"
+  ],
+  "shortcuts": [
+    {
+      "name": "Book Bus Ticket",
+      "short_name": "Book Ticket",
+      "url": "/",
+      "description": "Search and book bus tickets across India",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Track PNR Status",
+      "short_name": "PNR Status",
+      "url": "/?action=pnr",
+      "description": "Check your confirmed bus booking details",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

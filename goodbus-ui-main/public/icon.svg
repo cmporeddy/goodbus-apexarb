@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0c2340" />
+      <stop offset="50%" stop-color="#153660" />
+      <stop offset="100%" stop-color="#d84e55" />
+    </linearGradient>
+    <linearGradient id="busGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f3f4f6" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Background rounded rectangle -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+
+  <!-- Outer subtle glow circle -->
+  <circle cx="256" cy="256" r="210" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" />
+
+  <!-- Main Bus Body Group -->
+  <g filter="url(#shadow)" transform="translate(96, 96)">
+    <!-- Bus Main Chassis -->
+    <path d="M40 30 C40 13.4 53.4 0 70 0 L250 0 C266.6 0 280 13.4 280 30 L280 230 C280 241 271 250 260 250 L60 250 C49 250 40 241 40 230 Z" fill="url(#busGrad)" />
+
+    <!-- Windshield -->
+    <rect x="62" y="32" width="196" height="80" rx="14" fill="#0c2340" />
+    <path d="M72 42 L150 42 L135 102 L72 102 Z" fill="rgba(255,255,255,0.15)" />
+
+    <!-- Destination Sign / LED display -->
+    <rect x="95" y="12" width="130" height="12" rx="4" fill="#d84e55" />
+
+    <!-- Front Grille / Bumper -->
+    <rect x="80" y="180" width="160" height="26" rx="6" fill="#e5e7eb" />
+    <line x1="95" y1="188" x2="225" y2="188" stroke="#9ca3af" stroke-width="3" stroke-linecap="round" />
+    <line x1="95" y1="198" x2="225" y2="198" stroke="#9ca3af" stroke-width="3" stroke-linecap="round" />
+
+    <!-- Headlights -->
+    <circle cx="68" cy="193" r="14" fill="#fbbf24" stroke="#f59e0b" stroke-width="2" />
+    <circle cx="252" cy="193" r="14" fill="#fbbf24" stroke="#f59e0b" stroke-width="2" />
+
+    <!-- Left & Right Mirrors -->
+    <path d="M40 60 L18 75 L18 105 L40 90 Z" fill="#ffffff" />
+    <path d="M280 60 L302 75 L302 105 L280 90 Z" fill="#ffffff" />
+
+    <!-- Wheels -->
+    <rect x="52" y="248" width="44" height="22" rx="8" fill="#1f2937" />
+    <rect x="224" y="248" width="44" height="22" rx="8" fill="#1f2937" />
+    <circle cx="74" cy="256" r="5" fill="#9ca3af" />
+    <circle cx="246" cy="256" r="5" fill="#9ca3af" />
+  </g>
+
+  <!-- Speed Swoosh / Indian Flag Accent Indicator -->
+  <path d="M110 430 Q256 460 402 430" fill="none" stroke="#d84e55" stroke-width="8" stroke-linecap="round" opacity="0.9" />
+  <circle cx="256" cy="445" r="4" fill="#ffffff" />
+</svg>

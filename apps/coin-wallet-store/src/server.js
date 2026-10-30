@@ -15,7 +15,7 @@ const BASE_SECURITY_HEADERS = Object.freeze({
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'SAMEORIGIN',
   'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Content-Security-Policy': "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-ancestors 'self'; base-uri 'none'; form-action 'self'; object-src 'none'"
+  'Content-Security-Policy': "default-src 'self' data: blob:; frame-src 'self' http://localhost:* http://127.0.0.1:* http://localhost:7000 http://127.0.0.1:7000 http://localhost:5000 http://127.0.0.1:5000 https:; connect-src 'self' http://localhost:* http://127.0.0.1:* https:; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; frame-ancestors 'self' http://localhost:* http://127.0.0.1:* https:; base-uri 'none'; form-action 'self'; object-src 'none'"
 });
 
 /**
@@ -384,6 +384,21 @@ export class CoinWalletStoreServer {
           res.end(JSON.stringify({ error: 'Failed to proxy payment API', details: err.message }));
           return;
         }
+      }
+
+      // GET /goodbus or /bus-tickets
+      if ((pathname === '/goodbus' || pathname === '/bus-tickets') && (method === 'GET' || method === 'HEAD')) {
+        try { this.goodbusHtml = fs.readFileSync(path.join(__dirname, 'goodbus.html'), 'utf8'); } catch {}
+        res.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          ...BASE_SECURITY_HEADERS
+        });
+        if (method === 'HEAD') { res.end(); return; }
+        res.end(this.goodbusHtml || 'GoodBus page not found');
+        return;
       }
 
       // GET / or /store

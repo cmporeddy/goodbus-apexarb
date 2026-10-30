@@ -82,9 +82,11 @@ export class AdminServer {
     // Always use empty string '' so client fetch calls hit the merchant admin's own /api proxy!
     // This completely eliminates CORS errors, tunnel downtime 530s, and cross-origin failures.
     const clientApiBase = '';
+    const adminToken = getAdminToken();
     html = html.replaceAll('{{API_BASE_URL}}', clientApiBase);
     html = html.replaceAll('{{APP_NAME}}', appName);
     html = html.replaceAll('{{DEFAULT_PRIMARY_COLOR}}', primaryColor);
+    html = html.replaceAll('{{ADMIN_TOKEN}}', adminToken);
     return html;
   }
 

@@ -1,0 +1,41 @@
+[ {
+  "id" : 2,
+  "name" : "Bangalore",
+  "priority" : false
+}, {
+  "id" : 4,
+  "name" : "Tirupathi",
+  "priority" : false
+}, {
+  "id" : 10,
+  "name" : "Sangam",
+  "priority" : false
+}, {
+  "id" : 11,
+  "name" : "Nellore palem",
+  "priority" : false
+}, {
+  "id" : 22,
+  "name" : "Gudur",
+  "priority" : false
+}, {
+  "id" : 38,
+  "name" : "Atmakur(nellore)",
+  "priority" : false
+}, {
+  "id" : 40,
+  "name" : "Buchi reddy palem",
+  "priority" : false
+}, {
+  "id" : 41,
+  "name" : "Tirupati",
+  "priority" : false
+}, {
+  "id" : 45,
+  "name" : "Chittoor",
+  "priority" : false
+}, {
+  "id" : 59,
+  "name" : "Somasila",
+  "priority" : false
+} ]

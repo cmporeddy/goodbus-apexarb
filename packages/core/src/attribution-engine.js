@@ -115,6 +115,10 @@ export class AttributionEngine {
    * }}
    */
   processObservation(normalizedObs) {
+    if (normalizedObs && normalizedObs.amountPaise !== undefined && normalizedObs.amountPaise !== null) {
+      normalizedObs.amountPaise = BigInt(normalizedObs.amountPaise);
+    }
+
     // Tier 1: Check fingerprint for deduplication
     const existing = this.obsRepo.findByFingerprint(normalizedObs.fingerprintHash);
     if (existing) {
@@ -292,10 +296,10 @@ export class AttributionEngine {
     if (normalizedObs.rawPayload?.targetSessionId) {
       currentSession = this.sessionRepo.findById(normalizedObs.rawPayload.targetSessionId);
     }
-    if (!currentSession || (currentSession.amountPaise !== normalizedObs.amountPaise)) {
+    if (!currentSession || (BigInt(currentSession.amountPaise) !== BigInt(normalizedObs.amountPaise))) {
       currentSession = this.sessionRepo.findCurrentActiveOrProcessing(normalizedObs.receivingAccountId);
     }
-    if (currentSession && currentSession.amountPaise !== normalizedObs.amountPaise) {
+    if (currentSession && BigInt(currentSession.amountPaise) !== BigInt(normalizedObs.amountPaise)) {
       const matchRows = this.sessionRepo.db.query(`
         SELECT * FROM payment_sessions
         WHERE receiving_account_id = ? AND status IN ('ACTIVE', 'PROCESSING') AND amount_paise = ?
@@ -338,7 +342,7 @@ export class AttributionEngine {
       const isEligibleStatus = [PaymentStatus.ACTIVE, PaymentStatus.PROCESSING].includes(currentSession.status);
 
       // Invariant Check 2: Exact Amount Match (in integer paise)
-      const isAmountMatch = currentSession.amountPaise === normalizedObs.amountPaise;
+      const isAmountMatch = BigInt(currentSession.amountPaise) === BigInt(normalizedObs.amountPaise);
 
       // Invariant Check 3: Temporal Window (with 5-minute clock skew tolerance, strictly preventing hijacking of prior expired sessions)
       let isPriorExpiredSession = false;
@@ -348,7 +352,7 @@ export class AttributionEngine {
           normalizedObs.receivingAccountId,
           thirtyMinutesAgo
         );
-        isPriorExpiredSession = recentExpired.some(s => s.amountPaise === normalizedObs.amountPaise);
+        isPriorExpiredSession = recentExpired.some(s => BigInt(s.amountPaise) === BigInt(normalizedObs.amountPaise));
       }
 
       const slotStart = currentSession.slotAcquiredAt
@@ -595,6 +599,21 @@ export class AttributionEngine {
           verificationTag: verifyResult.tag,
           sources: verifyResult.sources
         });
+
+        if (this.verificationPolicy === 'REQUIRE_DUAL_CHANNEL') {
+          return {
+            attributed: true,
+            duplicate: false,
+            lateMatch: false,
+            wasActive,
+            paymentSessionId: currentSession.id,
+            observationId: savedObs.id,
+            outcomeStatus: currentSession.status,
+            verificationLevel: 1,
+            verificationTag: verifyResult.tag,
+            verificationSources: verifyResult.sources
+          };
+        }
 
         // If grace period is 0 (e.g. in instant tests), finalize immediately
         if (this.verificationPolicy === 'SINGLE_CHANNEL_VALIDATED_GMAIL' || this.gracePeriodMs <= 0) {
@@ -872,7 +891,7 @@ export class AttributionEngine {
       thirtyMinutesAgo
     );
 
-    const lateMatches = recentExpired.filter(s => s.amountPaise === normalizedObs.amountPaise);
+    const lateMatches = recentExpired.filter(s => BigInt(s.amountPaise) === BigInt(normalizedObs.amountPaise));
     if (lateMatches.length > 1) {
       return this.holdAmbiguous(savedObs, lateMatches, 'MULTIPLE_LATE_AMOUNT_MATCHES');
     }
