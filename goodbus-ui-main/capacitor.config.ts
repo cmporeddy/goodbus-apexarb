@@ -1,4 +1,15 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+export interface CapacitorConfig {
+  appId?: string;
+  appName?: string;
+  webDir?: string;
+  bundledWebRuntime?: boolean;
+  server?: {
+    url?: string;
+    cleartext?: boolean;
+    androidScheme?: string;
+    iosScheme?: string;
+  };
+}
 
 const config: CapacitorConfig = {
   appId: 'in.goodbus.app',
@@ -6,7 +17,6 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   bundledWebRuntime: false,
   server: {
-    // When developing live or connecting directly to the sovereign server:
     androidScheme: 'https',
     iosScheme: 'https'
   }

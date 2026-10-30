@@ -246,11 +246,11 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
     }
   };
 
-  // Launch specific app chosen by user from the in-app chooser
+  // Launch specific app chosen by user from the in-app chooser with intelligent watchdog fallback
   const handleSelectApp = (appKey: 'gpay' | 'phonepe' | 'paytm' | 'cred' | 'system') => {
     setShowUpiChooser(false);
     setIsProcessing(true);
-    setProcessingStatus('Launching UPI app...');
+    setProcessingStatus('Connecting to UPI app...');
 
     const amountToCharge = isTestMode ? 1.00 : totalAmount;
     const generatedOrderId = `GB_ORD_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
@@ -260,6 +260,15 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
     const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
     let targetUrl = `upi://pay?${query}`;
+
+    const appNames: Record<string, string> = {
+      gpay: 'Google Pay',
+      phonepe: 'PhonePe',
+      paytm: 'Paytm',
+      cred: 'CRED',
+      system: 'Installed UPI App',
+    };
+    const targetAppName = appNames[appKey] || 'UPI App';
 
     if (appKey === 'phonepe') {
       targetUrl = `phonepe://pay?${query}`;
@@ -274,20 +283,47 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
         targetUrl = `gpay://upi/pay?${query}`;
       }
     } else {
-      // System / Other UPI apps
+      // System / Auto-detect: queries Android's package manager for installed apps
       targetUrl = `upi://pay?${query}`;
     }
 
+    let hasPageBlurred = false;
+    const markBlurred = () => {
+      hasPageBlurred = true;
+    };
+    window.addEventListener('blur', markBlurred, { once: true });
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        hasPageBlurred = true;
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility, { once: true });
+
+    // Execute the launch
     try {
       window.location.href = targetUrl;
     } catch (_e) {
       window.location.href = `upi://pay?${query}`;
     }
 
+    // Active Watchdog: If browser is still in foreground after 1100ms, app is missing!
     setTimeout(() => {
+      window.removeEventListener('blur', markBlurred);
+      document.removeEventListener('visibilitychange', handleVisibility);
+
+      if (!hasPageBlurred && !document.hidden && appKey !== 'system') {
+        // App is not installed on the user's phone! Auto-switch to installed apps
+        setUtrStatusMsg({
+          text: `⚠️ ${targetAppName} is not installed on your phone. Automatically opening your installed UPI apps...`,
+          type: 'info',
+        });
+        window.location.href = `upi://pay?${query}`;
+      }
+
       setIsProcessing(false);
       setProcessingStatus('');
-    }, 2500);
+    }, 1200);
   };
 
   // Instant UTR Verification Handler — STRICT FAIL-CLOSED (No Fake Confirmations)
@@ -702,8 +738,45 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
               </button>
             </div>
 
-            {/* List of UPI Apps: GPay and PhonePe on top, CRED down in the list per user request */}
+            {/* List of UPI Apps */}
             <div className="p-4 space-y-2.5 max-h-[70vh] overflow-y-auto">
+              {/* Option 1: Auto-Detect Installed UPI Apps on phone */}
+              <button
+                type="button"
+                onClick={() => handleSelectApp('system')}
+                className="w-full p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50/60 border-2 border-emerald-500/80 hover:border-emerald-600 flex items-center justify-between text-left transition-all cursor-pointer group active:scale-[0.99] shadow-xs"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                    <span className="material-symbols-outlined text-[24px]">phonelink_ring</span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-bold text-gray-900 group-hover:text-emerald-800">
+                        Auto-Detect Installed UPI Apps
+                      </span>
+                      <span className="text-[9px] font-extrabold uppercase tracking-wide bg-emerald-600 text-white px-2 py-0.5 rounded-full">
+                        Recommended
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-emerald-800/80 font-medium mt-0.5">
+                      Reads all UPI apps installed on this phone
+                    </div>
+                  </div>
+                </div>
+                <span className="material-symbols-outlined text-[22px] text-emerald-600 group-hover:translate-x-0.5 transition-transform">
+                  arrow_forward
+                </span>
+              </button>
+
+              <div className="flex items-center my-1">
+                <div className="flex-1 border-t border-gray-200"></div>
+                <span className="px-3 text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                  Or launch directly (with auto-fallback)
+                </span>
+                <div className="flex-1 border-t border-gray-200"></div>
+              </div>
+
               {/* Google Pay */}
               <button
                 type="button"
@@ -777,24 +850,6 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                   </div>
                 </div>
                 <span className="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-black">chevron_right</span>
-              </button>
-
-              {/* Other UPI Apps (Native OS Chooser) */}
-              <button
-                type="button"
-                onClick={() => handleSelectApp('system')}
-                className="w-full p-3.5 rounded-2xl border border-dashed border-gray-300 hover:border-emerald-600 hover:bg-emerald-50/30 flex items-center justify-between text-left transition-all cursor-pointer group active:scale-[0.99]"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shadow-2xs">
-                    <span className="material-symbols-outlined text-[22px]">apps</span>
-                  </div>
-                  <div>
-                    <div className="text-sm font-bold text-gray-900 group-hover:text-emerald-700">Other UPI Apps</div>
-                    <div className="text-[11px] text-gray-500 font-light">DBS India, iMobile, BHIM, INDIE, etc.</div>
-                  </div>
-                </div>
-                <span className="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-emerald-600">chevron_right</span>
               </button>
             </div>
 
