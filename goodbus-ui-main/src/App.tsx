@@ -21,7 +21,6 @@ import { OffersModal } from './components/OffersModal';
 import { SupportModal } from './components/SupportModal';
 import { AdminScreen } from './components/AdminScreen';
 import { MobileBottomNav } from './components/MobileBottomNav';
-import { InstallAppBanner } from './components/InstallAppBanner';
 
 export default function App() {
   // Navigation screen (supports /admin directly from URL)
@@ -599,9 +598,6 @@ export default function App() {
         onOpenOffers={() => setIsOffersModalOpen(true)}
         onOpenSupport={() => setIsSupportModalOpen(true)}
       />
-
-      {/* PWA Mobile App Install Prompt */}
-      <InstallAppBanner />
 
       {/* Active Screen */}
       <div className="flex-1 pb-16 sm:pb-0">

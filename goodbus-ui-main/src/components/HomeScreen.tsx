@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { POPULAR_ROUTES, FLEET_OPERATORS } from '../data/busData';
+import { POPULAR_ROUTES } from '../data/busData';
 import {
   fetchCitiesAndAliases,
   searchCitiesWithProximity,
@@ -943,59 +943,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </div>
         </section>
 
-        {/* 4 Trust Badges Strip */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-16">
-          <div className="p-6 rounded-3xl bg-white border border-gray-100 shadow-sm flex items-start gap-4 hover:border-gray-200 transition-all">
-            <div className="w-10 h-10 rounded-full bg-red-50 text-[#d84e55] flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[20px]">bolt</span>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900 text-sm mb-1">Instant Checkout</h4>
-              <p className="text-xs text-gray-500 leading-relaxed font-light">
-                Zero login required. Direct UPI &amp; 1-click booking without password hurdles.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-6 rounded-3xl bg-white border border-gray-100 shadow-sm flex items-start gap-4 hover:border-gray-200 transition-all">
-            <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[20px]">currency_rupee</span>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900 text-sm mb-1">Free Cancellation</h4>
-              <p className="text-xs text-gray-500 leading-relaxed font-light">
-                Automated instant refunds to original bank account within minutes if plans change.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-6 rounded-3xl bg-white border border-gray-100 shadow-sm flex items-start gap-4 hover:border-gray-200 transition-all">
-            <div className="w-10 h-10 rounded-full bg-red-50 text-[#d84e55] flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[20px]">gps_fixed</span>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900 text-sm mb-1">Live GPS Tracking</h4>
-              <p className="text-xs text-gray-500 leading-relaxed font-light">
-                Real-time location sharing with driver contact and automated boarding reminders.
-              </p>
-            </div>
-          </div>
-
-          <div className="p-6 rounded-3xl bg-white border border-gray-100 shadow-sm flex items-start gap-4 hover:border-gray-200 transition-all">
-            <div className="w-10 h-10 rounded-full bg-pink-50 text-pink-600 flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[20px]">female</span>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-900 text-sm mb-1">Women Safety First</h4>
-              <p className="text-xs text-gray-500 leading-relaxed font-light">
-                Dedicated female-only reserved berths &amp; verified crew on all prime night routes.
-              </p>
-            </div>
-          </div>
-        </section>
-
         {/* Popular Intercity Bus Routes */}
-        <section className="mb-16">
+        <section className="mb-10">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-2xl sm:text-3xl font-light text-gray-900 tracking-tight">
@@ -1006,7 +955,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </p>
             </div>
             <span className="hidden sm:inline-block text-xs font-semibold text-[#d84e55] bg-[#fef2f2] border border-red-100 px-3 py-1 rounded-full uppercase tracking-wider">
-              Private Travels
+              Express Routes
             </span>
           </div>
 
@@ -1042,85 +991,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                   </span>
                   <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#d84e55] bg-[#fef2f2] border border-red-100 px-3 py-1 rounded-full">
                     <span className="material-symbols-outlined text-[14px]">directions_bus</span>
-                    Private
+                    Book Now
                   </span>
                 </div>
               </div>
             ))}
-          </div>
-        </section>
-
-        {/* India's Most Trusted Bus Fleets */}
-        <section className="mb-16 bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
-          <div className="text-center max-w-xl mx-auto mb-8">
-            <h3 className="text-2xl sm:text-3xl font-light text-gray-900 tracking-tight">
-              India's Most Trusted Bus Fleets
-            </h3>
-            <p className="text-xs sm:text-sm text-gray-500 mt-1 font-light">
-              Direct official partnerships ensuring verified drivers, sanitary rest stops &amp; GPS sync
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {FLEET_OPERATORS.map((op) => (
-              <div
-                key={op.code}
-                className="p-5 rounded-2xl border border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm transition-all text-center flex flex-col items-center justify-center group"
-              >
-                <div
-                  className={`w-12 h-12 rounded-full ${op.bg} ${op.color} font-bold text-sm flex items-center justify-center mb-3 shadow-sm group-hover:scale-105 transition-transform`}
-                >
-                  {op.code}
-                </div>
-                <h5 className="font-medium text-gray-900 text-xs leading-tight mb-1">{op.name}</h5>
-                <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
-                  <span className="text-amber-500">★</span>
-                  <span>{op.rating}</span>
-                </div>
-                <span className="text-[10px] text-gray-400 mt-0.5">{op.fleetCount}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Route Stats Bar */}
-        <section className="p-8 bg-white rounded-3xl border border-gray-100 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-gray-100">
-            <div className="pt-4 md:pt-0">
-              <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-                Average Checkout Time
-              </div>
-              <div className="text-4xl font-light text-gray-900 mb-2">
-                60s
-              </div>
-              <p className="text-xs text-gray-500 font-light">
-                No passwords, no OTP delays — instant booking via UPI
-              </p>
-            </div>
-
-            <div className="pt-4 md:pt-0">
-              <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-                On-Time Departure
-              </div>
-              <div className="text-4xl font-light text-gray-900 mb-2">
-                99.4%
-              </div>
-              <p className="text-xs text-gray-500 font-light">
-                Tracked in real-time through connected GPS transponders
-              </p>
-            </div>
-
-            <div className="pt-4 md:pt-0">
-              <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-                Hidden Convenience Fees
-              </div>
-              <div className="text-4xl font-light text-gray-900 mb-2">
-                ₹0
-              </div>
-              <p className="text-xs text-gray-500 font-light">
-                Transparent fares with zero surprise charges at checkout
-              </p>
-            </div>
           </div>
         </section>
       </div>
